@@ -54,6 +54,17 @@ public final class BalancedBst<A> {
         return new BalancedBst<>(o, updatedRepTree);
     }
 
+    // a small algebraic type used to represent both internal and empty
+    // arne andersson tree nodes; note: marked private as this is considered
+    // an implementation detail of the public api of the BalancedBst class
+
+    /**
+     * A small algebraic type used to represent the node types (internal and empty)
+     * that track levels suitable for representing an Arne Andersson (AA) tree.
+     * <p>
+     * Note: marked private as this type hierarchy is really an implementation of
+     * the api for {@link BalancedBst}.
+     */
     private sealed interface AATr<A> {
         final class Empty<A>                                        implements AATr<A> {
             public static final AATr<?> Instance = new Empty<>();
