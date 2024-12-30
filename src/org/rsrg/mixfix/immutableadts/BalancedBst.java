@@ -1,6 +1,7 @@
 package org.rsrg.mixfix.immutableadts;
 
 import java.util.Comparator;
+import java.util.function.BiFunction;
 
 /**
  * An immutable BST that guarantees an O(log n) worst case runtime
@@ -57,6 +58,7 @@ public final class BalancedBst<A> {
         return new BalancedBst<>(order, updatedRep);
     }
 
+    // recursive helper:
     private AATr<A> insert(A k, AATr<A> t) {
         return switch (t) {
             case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), k, AATr.empty());
@@ -80,6 +82,7 @@ public final class BalancedBst<A> {
         };
     }
 
+
     /**
      * O(1) - an initial fixup operation (the result of which sometimes needs to
      * be fixed up further via `skew`). Anyways, idea with this transform is:
@@ -102,13 +105,47 @@ public final class BalancedBst<A> {
         };
     }
 
+    /**
+     * O(1) - fixup operation in the event that the root of the tree {@code t} previously
+     * skewed had a right child at the same level.
+     */
     private AATr<A> split(AATr<A> t) {
-        throw new UnsupportedOperationException("not done");
+        return switch (t) { //@formatter:off
+            case AATr.Node(var xLvl,
+                           AATr.Node(var yLvl, var a, var yKey, var b),
+                           var xKey,
+                           var c) when xLvl == yLvl ->
+                    //@formatter:on
+                    AATr.node(xLvl, a, yKey, AATr.node(xLvl, b, xKey, c));
+            case AATr<A> _ -> t;
+        };
+    }
+
+    /** O(n) - returns the number of nodes in this tree. */
+    public int size() {
+        return fold(rep, 0, (acc, _) -> acc + 1);
     }
 
     /**
-     * A small algebraic type used to represent the node types (internal and empty)
-     * that track levels suitable for representing an Arne Andersson (AA) tree.
+     * O(n) - performs a (left) fold over the data stored in the nodes of
+     * this tree using the provided binary function {@code f}.
+     */
+    private <B> B fold(AATr<A> t, B neutral,
+                       BiFunction<B, A, B> f) {
+        return switch (t) {
+            case AATr.Node(_, var a, var k, var b) -> {
+                var leftVal = fold(a, neutral, f);
+                var updatedRootVal = f.apply(leftVal, k);
+                var rightVal = fold(b, updatedRootVal, f);
+                yield rightVal;
+            }
+            case AATr.Empty<A> _ -> neutral;
+        };
+    }
+
+    /**
+     * A sum type used to represent the node types (internal and empty)
+     * that also track tree level (needed for representing Arne Andersson (AA) trees).
      * <p>
      * Note: marked private as this type hierarchy is really an implementation of
      * the api for {@link BalancedBst}.
@@ -120,7 +157,9 @@ public final class BalancedBst<A> {
             private Empty() {
             }
         }
-        record Node<A>(int lvl, AATr<A> left, A key, AATr<A> right) implements AATr<A> { }
+
+        record Node<A>(int lvl, AATr<A> left, A key, AATr<A> right) implements AATr<A> {
+        }
 
         // "smart constructors" for the two node types
         @SuppressWarnings("unchecked") static <T> AATr<T> empty() {
