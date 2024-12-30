@@ -1,5 +1,8 @@
 package org.rsrg.mixfix.immutableadts;
 
+import org.rsrg.mixfix.util.Maybe;
+import org.rsrg.mixfix.util.Pair;
+
 import java.util.Comparator;
 import java.util.function.BiFunction;
 
@@ -19,9 +22,9 @@ import java.util.function.BiFunction;
  *
  * @param <A> the type stored within the nodes of this tree.
  */
-public final class BalancedBst<A> {
+final class BalancedBst<A> {
     private final Comparator<A> order;
-    private final AATr<A> rep;
+    final AATr<A> rep;
 
     private BalancedBst(Comparator<A> order, AATr<A> rep) {
         this.order = order;
@@ -41,7 +44,7 @@ public final class BalancedBst<A> {
     @SafeVarargs static <T> BalancedBst<T> of(Comparator<T> o, T... ts) {
         var result = empty(o);
         for (var t : ts) {
-            result = result.insert(t);
+            result = result.insert(t).first();
         }
         return result;
     }
@@ -52,36 +55,42 @@ public final class BalancedBst<A> {
 
     // core operations:
 
-    /** O(log n) - inserts {@code key} into this tree with balancing. */
-    public BalancedBst<A> insert(A key) {
-        var updatedRep = insert(key, rep);
-        return new BalancedBst<>(order, updatedRep);
-    }
-
-    // recursive helper:
-    private AATr<A> insert(A k, AATr<A> t) {
-        return switch (t) {
-            case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), k, AATr.empty());
-            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) < 0 -> {
-                var rawLeft = insert(k, a);
-                var nodeToSkew = AATr.node(trLvl, rawLeft, trKey, b);
-                var skewedLeft = skew(nodeToSkew);
-                var splitLeft = split(skewedLeft);
-                yield splitLeft;
-            }
-            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) > 0 -> {
-                var rawRight = insert(k, b);
-                var nodeToSkew = AATr.node(trLvl, a, trKey, rawRight);
-                var skewedRight = skew(nodeToSkew);
-                var splitRight = split(skewedRight);
-                yield splitRight;
-            }
-            // case 3: key == another already in the tree, return the
-            // tree unchanged (we don't deal with dups for now)
-            case AATr<A> _ -> rep;
+    /**
+     * O(log n) - inserts {@code key} into this tree with balancing;
+     * returns a pair: (resulting-tree, was-inserted).
+     */
+    public Pair<BalancedBst<A>, Boolean> insert(A key) {
+        return switch (insert(key, rep)) {
+            case Pair(var tr, var inserted) when inserted
+                    -> Pair.of(new BalancedBst<>(order, tr), true);
+            case Pair(var tr, _)
+                    -> Pair.of(new BalancedBst<>(order, tr), false);
         };
     }
 
+    // recursive helper:
+    private Pair<AATr<A>, Boolean> insert(A k, AATr<A> t) {
+        return switch (t) {
+            case AATr.Empty<A> _ -> Pair.of(AATr.node(1, AATr.empty(), k, AATr.empty()), true);
+            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) < 0 -> {
+                var rawLeft = insert(k, a);
+                var nodeToSkew = AATr.node(trLvl, rawLeft.first(), trKey, b);
+                var skewedLeft = skew(nodeToSkew);
+                var splitLeft = split(skewedLeft);
+                yield Pair.of(splitLeft, rawLeft.second());
+            }
+            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) > 0 -> {
+                var rawRight = insert(k, b);
+                var nodeToSkew = AATr.node(trLvl, a, trKey, rawRight.first());
+                var skewedRight = skew(nodeToSkew);
+                var splitRight = split(skewedRight);
+                yield Pair.of(splitRight, rawRight.second());
+            }
+            // case 3: key == another already in the tree, return the
+            // tree unchanged (we don't deal with dups for now)
+            case AATr<A> _ -> Pair.of(t, false);
+        };
+    }
 
     /**
      * O(1) - an initial fixup operation (the result of which sometimes needs to
@@ -121,15 +130,62 @@ public final class BalancedBst<A> {
         };
     }
 
+    public Maybe<A> find(A key) {
+        return find(key, rep);
+    }
+
+    private Maybe<A> find(A key, AATr<A> t) {
+        return switch (t)  {
+            case AATr.Node(_, var a, var k, _) when order.compare(key, k) < 0  -> find(key, a);
+            case AATr.Node(_, _, var k, var b) when order.compare(key, k) > 0  -> find(key, b);
+            case AATr.Node(_, _, var k, var _) when order.compare(key, k) == 0 -> Maybe.of(k);
+            default -> Maybe.none();
+        };
+    }
+
     /** O(n) - returns the number of nodes in this tree. */
     public int size() {
         return fold(rep, 0, (acc, _) -> acc + 1);
     }
 
     /**
+     * O(log n) - returns true only if {@code key} appears in this
+     * tree; false otherwise.
+     */
+    public boolean contains(A key) {
+        return contains(key, rep);
+    }
+
+    private boolean contains(A key, AATr<A> t) {
+        return switch (t) {
+            case AATr.Node(_, var a, var k, _) when order.compare(k, key) < 0 -> contains(key, a);
+            case AATr.Node(_, _, var k, var b) when order.compare(k, key) > 0 -> contains(key, b);
+            case AATr.Node(_, _, _, _)  -> true;
+            case AATr.Empty<A> _        -> false;
+        };
+    }
+
+    /**
+     * O(1) - returns true only if this tree is empty (has no nodes);
+     * false otherwise.
+     */
+    public boolean null_() {
+        return switch (rep) {
+            case AATr.Empty<A> _ -> true;
+            default              -> false;
+        };
+    }
+
+    /**
      * O(n) - performs a (left) fold over the data stored in the nodes of
      * this tree using the provided binary function {@code f}.
      */
+    public <B> B fold(BalancedBst<A> t, B neutral,
+                       BiFunction<B, A, B> f) {
+        var result = fold(t.rep, neutral, f);
+        return result;
+    }
+
     private <B> B fold(AATr<A> t, B neutral,
                        BiFunction<B, A, B> f) {
         return switch (t) {
@@ -144,30 +200,22 @@ public final class BalancedBst<A> {
     }
 
     /**
-     * A sum type used to represent the node types (internal and empty)
-     * that also track tree level (needed for representing Arne Andersson (AA) trees).
-     * <p>
-     * Note: marked private as this type hierarchy is really an implementation of
-     * the api for {@link BalancedBst}.
+     * O(log n) - deletes a key-value pair from this tree; returns
+     * a pair (resulting-tree, was-deleted).
      */
-    protected sealed interface AATr<A> {
-        final class Empty<A> implements AATr<A> {
-            public static final AATr<?> Instance = new Empty<>();
+    public Pair<BalancedBst<A>, Boolean> delete(A key) {
+        var updatedRep = delete(key, rep);
+        throw new UnsupportedOperationException("not done");
+    }
 
-            private Empty() {
-            }
-        }
-
-        record Node<A>(int lvl, AATr<A> left, A key, AATr<A> right) implements AATr<A> {
-        }
-
-        // "smart constructors" for the two node types
-        @SuppressWarnings("unchecked") static <T> AATr<T> empty() {
-            return (AATr<T>) Empty.Instance;
-        }
-
-        static <T> AATr<T> node(int lvl, AATr<T> left, T data, AATr<T> right) {
-            return new Node<>(lvl, left, data, right);
-        }
+    // returns a (tree-post-deletion : AATr<A>, keyRemoved : boolean)
+    private Pair<AATr<A>, Boolean> delete(A key, AATr<A> t) {
+        throw new UnsupportedOperationException("not done");
+        /*return switch (t) {
+            case AATr.Empty<A> e -> e;
+            case AATr.Node(_, AATr.Empty<A> _, _, var rt) -> rt;
+            case AATr.Node(_, var lt, _, AATr.Empty<A> _) -> lt;
+            case AATr.Node(_, var lt, var k, var rt) ->
+        };*/
     }
 }
