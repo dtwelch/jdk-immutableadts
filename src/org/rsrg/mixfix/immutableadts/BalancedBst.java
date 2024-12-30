@@ -4,20 +4,21 @@ import java.util.Comparator;
 
 /**
  * An immutable BST that guarantees an O(log n) worst case runtime
- * for insert, delete, contains, etc.
+ * for standard operations (e.g., insert, delete, contains, etc.).
  * <p>
- * Here, {@code rep} is the underlying algebraic type we use as the
- * representation for our balanced search tree.
+ * Here, {@link AATr} is the underlying algebraic type we use as the
+ * representation for our balanced search tree. Its current state is
+ * tracked in the {@code rep} field.
  * <p>
- * <b>Rep invariant:</b> {@code repTree} always adheres to
- * invariants A1-A4 (see linked paper).
+ * <b>Rep invariant:</b> {@code rep} always adheres to invariants A1-A4
+ * (see linked paper).
  * <p>
  * Note: clients can obtain a tree instance via the factory methods
  * {@link #empty()} and {@link #of(Comparable[])}.
  *
  * @param <A> the type stored within the nodes of this tree.
  */
-public final class BalancedBst<A>{
+public final class BalancedBst<A> {
     private final Comparator<A> order;
     private final AATr<A> rep;
 
@@ -36,8 +37,7 @@ public final class BalancedBst<A>{
         return empty(Comparable::compareTo);
     }
 
-    @SafeVarargs static <T> BalancedBst<T> of(Comparator<T> o,
-                                              T ... ts) {
+    @SafeVarargs static <T> BalancedBst<T> of(Comparator<T> o, T... ts) {
         var result = empty(o);
         for (var t : ts) {
             result = result.insert(t);
@@ -45,8 +45,7 @@ public final class BalancedBst<A>{
         return result;
     }
 
-    @SafeVarargs static <T extends Comparable<T>> BalancedBst<T> of(
-                                              T ... ts) {
+    @SafeVarargs static <T extends Comparable<T>> BalancedBst<T> of(T... ts) {
         return of(Comparable::compareTo, ts);
     }
 
@@ -55,26 +54,30 @@ public final class BalancedBst<A>{
     /** O(log n) - inserts {@code key} into this tree with balancing. */
     public BalancedBst<A> insert(A key) {
         var updatedRep = insert(key, rep);
-        return new BalancedBst<>(order, rep);
+        return new BalancedBst<>(order, updatedRep);
     }
 
     private AATr<A> insert(A k, AATr<A> t) {
-       return switch (t) {
-           case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), k, AATr.empty());
-           case AATr.Node(var lvl, var a, var trKey, var b)
-                   when order.compare(k, trKey) < 0 -> {
-               var rawLeft = insert(k, a);
-               var nodeToSkew = skew(null);
-               yield rawLeft;
-           }
-           case AATr.Node(var lvl, var a, var trKey, var b)
-                   when order.compare(k, trKey) > 0 -> {
-               throw new RuntimeException("not done");
-           }
-           // case 3: key == another already in the tree, return the
-           // tree unchanged (we don't deal with dups for now)
-           case AATr<A> _ -> rep;
-       };
+        return switch (t) {
+            case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), k, AATr.empty());
+            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) < 0 -> {
+                var rawLeft = insert(k, a);
+                var nodeToSkew = AATr.node(trLvl, rawLeft, trKey, b);
+                var skewedLeft = skew(nodeToSkew);
+                var splitLeft = split(skewedLeft);
+                yield splitLeft;
+            }
+            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) > 0 -> {
+                var rawRight = insert(k, b);
+                var nodeToSkew = AATr.node(trLvl, a, trKey, rawRight);
+                var skewedRight = skew(nodeToSkew);
+                var splitRight = split(skewedRight);
+                yield splitRight;
+            }
+            // case 3: key == another already in the tree, return the
+            // tree unchanged (we don't deal with dups for now)
+            case AATr<A> _ -> rep;
+        };
     }
 
     /**
@@ -87,7 +90,20 @@ public final class BalancedBst<A>{
      * </code></pre>
      */
     private AATr<A> skew(AATr<A> t) {
+        return switch (t) {
+            //@formatter:off
+            case AATr.Node(var xLvl,
+                           AATr.Node(var yLvl, var a, var yKey, var b),
+                           var xKey,
+                           var c
+            //@formatter:on
+            ) when xLvl == yLvl -> AATr.node(xLvl, a, yKey, AATr.node(xLvl, b, xKey, c));
+            case AATr<A> _ -> t;
+        };
+    }
 
+    private AATr<A> split(AATr<A> t) {
+        throw new UnsupportedOperationException("not done");
     }
 
     /**
@@ -98,11 +114,13 @@ public final class BalancedBst<A>{
      * the api for {@link BalancedBst}.
      */
     protected sealed interface AATr<A> {
-        final class Empty<A>                                        implements AATr<A> {
+        final class Empty<A> implements AATr<A> {
             public static final AATr<?> Instance = new Empty<>();
-            private Empty() {}
+
+            private Empty() {
+            }
         }
-        record Node<A>(int lvl, AATr<A> left, A key, AATr<A> right) implements AATr<A> {}
+        record Node<A>(int lvl, AATr<A> left, A key, AATr<A> right) implements AATr<A> { }
 
         // "smart constructors" for the two node types
         @SuppressWarnings("unchecked") static <T> AATr<T> empty() {
