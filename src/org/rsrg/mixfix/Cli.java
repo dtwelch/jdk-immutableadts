@@ -1,4 +1,4 @@
-package edu.rsrg.mixfix;
+package org.rsrg.mixfix;
 
 public final class Cli {
 

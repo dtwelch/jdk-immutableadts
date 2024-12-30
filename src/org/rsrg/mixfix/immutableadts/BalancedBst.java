@@ -1,14 +1,14 @@
-package edu.rsrg.mixfix.immutableadts;
+package org.rsrg.mixfix.immutableadts;
 
 import java.util.Comparator;
 
 /**
- * An immutable tree map that guarantees O(log n) runtime for all
- * standard map modification/transformation operations.
+ * An immutable BST that guarantees an O(log n) worst case runtime
+ * for insert, delete, contains, etc.
  *
  * @param <A> the type stored within the nodes of this tree.
  */
-public final class VTreeMap<A> {
+public final class BalancedBst<A> {
 
     /**
      * The underlying algebraic type we use as the representation
@@ -20,23 +20,23 @@ public final class VTreeMap<A> {
     private final AATr<A> repTree;
     private final Comparator<A> o;
 
-    private VTreeMap(Comparator<A> order, AATr<A> rep) {
+    private BalancedBst(Comparator<A> order, AATr<A> rep) {
         this.repTree = rep;
         this.o = order;
     }
 
-    static <T> VTreeMap<T> empty(Comparator<T> o) {
-        return new VTreeMap<>(o, AATr.empty());
+    static <T> BalancedBst<T> empty(Comparator<T> o) {
+        return new BalancedBst<>(o, AATr.empty());
     }
 
-    static <T extends Comparable<T>> VTreeMap<T> empty() {
+    static <T extends Comparable<T>> BalancedBst<T> empty() {
         return empty(Comparable::compareTo);
     }
 
     // core operations
 
     /** O(log n) - inserts {@code key} into this tree with balancing. */
-    public VTreeMap<A> insert(A key) {
+    public BalancedBst<A> insert(A key) {
         var updatedRepTree = switch (repTree) {
             case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), key, AATr.empty());
             case AATr.Node(var lvl, var a, var trKey, var b)
@@ -51,6 +51,23 @@ public final class VTreeMap<A> {
             // tree unchanged (we don't deal with dups for now)
             case AATr<A> _ -> repTree;
         };
-        return new VTreeMap<>(o, updatedRepTree);
+        return new BalancedBst<>(o, updatedRepTree);
+    }
+
+    private sealed interface AATr<A> {
+        final class Empty<A>                                        implements AATr<A> {
+            public static final AATr<?> Instance = new Empty<>();
+            private Empty() {}
+        }
+        record Node<A>(int lvl, AATr<A> left, A key, AATr<A> right) implements AATr<A> {}
+
+        // "smart constructors" for the two node types
+        @SuppressWarnings("unchecked") static <T> AATr<T> empty() {
+            return (AATr<T>) Empty.Instance;
+        }
+
+        static <T> AATr<T> node(int lvl, AATr<T> left, T data, AATr<T> right) {
+            return new Node<>(lvl, left, data, right);
+        }
     }
 }
