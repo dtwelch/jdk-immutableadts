@@ -5,25 +5,28 @@ import java.util.Comparator;
 /**
  * An immutable BST that guarantees an O(log n) worst case runtime
  * for insert, delete, contains, etc.
+ * <p>
+ * Here, {@code rep} is the underlying algebraic type we use as the
+ * representation for our balanced search tree.
+ * <p>
+ * <b>Rep invariant:</b> {@code repTree} always adheres to
+ * invariants A1-A4 (see linked paper).
+ * <p>
+ * Note: clients can obtain a tree instance via the factory methods
+ * {@link #empty()} and {@link #of(Comparable[])}.
  *
  * @param <A> the type stored within the nodes of this tree.
  */
-public final class BalancedBst<A> {
-
-    /**
-     * The underlying algebraic type we use as the representation
-     * for our balanced search tree.
-     * <p>
-     * <b>Rep invariant:</b> {@code repTree} always adheres to
-     * invariants A1-A4 (see linked paper).
-     */
-    private final AATr<A> repTree;
-    private final Comparator<A> o;
+public final class BalancedBst<A>{
+    private final Comparator<A> order;
+    private final AATr<A> rep;
 
     private BalancedBst(Comparator<A> order, AATr<A> rep) {
-        this.repTree = rep;
-        this.o = order;
+        this.order = order;
+        this.rep = rep;
     }
+
+    // factory methods:
 
     static <T> BalancedBst<T> empty(Comparator<T> o) {
         return new BalancedBst<>(o, AATr.empty());
@@ -33,30 +36,59 @@ public final class BalancedBst<A> {
         return empty(Comparable::compareTo);
     }
 
-    // core operations
+    @SafeVarargs static <T> BalancedBst<T> of(Comparator<T> o,
+                                              T ... ts) {
+        var result = empty(o);
+        for (var t : ts) {
+            result = result.insert(t);
+        }
+        return result;
+    }
+
+    @SafeVarargs static <T extends Comparable<T>> BalancedBst<T> of(
+                                              T ... ts) {
+        return of(Comparable::compareTo, ts);
+    }
+
+    // core operations:
 
     /** O(log n) - inserts {@code key} into this tree with balancing. */
     public BalancedBst<A> insert(A key) {
-        var updatedRepTree = switch (repTree) {
-            case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), key, AATr.empty());
-            case AATr.Node(var lvl, var a, var trKey, var b)
-                    when o.compare(key, trKey) < 0 -> {
-               throw new RuntimeException("not done");
-            }
-            case AATr.Node(var lvl, var a, var trKey, var b)
-                    when o.compare(key, trKey) > 0 -> {
-                throw new RuntimeException("not done");
-            }
-            // case 3: key == another already in the tree, return the
-            // tree unchanged (we don't deal with dups for now)
-            case AATr<A> _ -> repTree;
-        };
-        return new BalancedBst<>(o, updatedRepTree);
+        var updatedRep = insert(key, rep);
+        return new BalancedBst<>(order, rep);
     }
 
-    // a small algebraic type used to represent both internal and empty
-    // arne andersson tree nodes; note: marked private as this is considered
-    // an implementation detail of the public api of the BalancedBst class
+    private AATr<A> insert(A k, AATr<A> t) {
+       return switch (t) {
+           case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), k, AATr.empty());
+           case AATr.Node(var lvl, var a, var trKey, var b)
+                   when order.compare(k, trKey) < 0 -> {
+               var rawLeft = insert(k, a);
+               var nodeToSkew = skew(null);
+               yield rawLeft;
+           }
+           case AATr.Node(var lvl, var a, var trKey, var b)
+                   when order.compare(k, trKey) > 0 -> {
+               throw new RuntimeException("not done");
+           }
+           // case 3: key == another already in the tree, return the
+           // tree unchanged (we don't deal with dups for now)
+           case AATr<A> _ -> rep;
+       };
+    }
+
+    /**
+     * O(1) - an initial fixup operation (the result of which sometimes needs to
+     * be fixed up further via `skew`). Anyways, idea with this transform is:
+     * <pre><code>
+     *     y <-- x               y --> x
+     *    / \     \   =skew=>   /     / \
+     *   a   b     c            a     b  c
+     * </code></pre>
+     */
+    private AATr<A> skew(AATr<A> t) {
+
+    }
 
     /**
      * A small algebraic type used to represent the node types (internal and empty)
@@ -65,7 +97,7 @@ public final class BalancedBst<A> {
      * Note: marked private as this type hierarchy is really an implementation of
      * the api for {@link BalancedBst}.
      */
-    private sealed interface AATr<A> {
+    protected sealed interface AATr<A> {
         final class Empty<A>                                        implements AATr<A> {
             public static final AATr<?> Instance = new Empty<>();
             private Empty() {}
