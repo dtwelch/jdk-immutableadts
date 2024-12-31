@@ -1,6 +1,5 @@
 package org.rsrg.mixfix.immutableadts;
 
-import org.rsrg.mixfix.util.Maybe;
 import org.rsrg.mixfix.util.Pair;
 
 import java.util.Comparator;
