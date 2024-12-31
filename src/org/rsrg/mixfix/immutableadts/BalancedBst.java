@@ -44,7 +44,7 @@ final class BalancedBst<A> {
     @SafeVarargs static <T> BalancedBst<T> of(Comparator<T> o, T... ts) {
         var result = empty(o);
         for (var t : ts) {
-            result = result.insert(t).first();
+            result = result.insert(t);
         }
         return result;
     }
@@ -59,36 +59,32 @@ final class BalancedBst<A> {
      * O(log n) - inserts {@code key} into this tree with balancing;
      * returns a pair: (resulting-tree, was-inserted).
      */
-    public Pair<BalancedBst<A>, Boolean> insert(A key) {
-        return switch (insert(key, rep)) {
-            case Pair(var tr, var inserted) when inserted
-                    -> Pair.of(new BalancedBst<>(order, tr), true);
-            case Pair(var tr, _)
-                    -> Pair.of(new BalancedBst<>(order, tr), false);
-        };
+    public BalancedBst<A> insert(A key) {
+        var updatedRep = insert(key, rep);
+        return new BalancedBst<>(order, updatedRep);
     }
 
     // recursive helper:
-    private Pair<AATr<A>, Boolean> insert(A k, AATr<A> t) {
+    private AATr<A> insert(A k, AATr<A> t) {
         return switch (t) {
-            case AATr.Empty<A> _ -> Pair.of(AATr.node(1, AATr.empty(), k, AATr.empty()), true);
+            case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), k, AATr.empty());
             case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) < 0 -> {
                 var rawLeft = insert(k, a);
-                var nodeToSkew = AATr.node(trLvl, rawLeft.first(), trKey, b);
+                var nodeToSkew = AATr.node(trLvl, rawLeft, trKey, b);
                 var skewedLeft = skew(nodeToSkew);
                 var splitLeft = split(skewedLeft);
-                yield Pair.of(splitLeft, rawLeft.second());
+                yield splitLeft;
             }
             case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) > 0 -> {
                 var rawRight = insert(k, b);
-                var nodeToSkew = AATr.node(trLvl, a, trKey, rawRight.first());
+                var nodeToSkew = AATr.node(trLvl, a, trKey, rawRight);
                 var skewedRight = skew(nodeToSkew);
                 var splitRight = split(skewedRight);
-                yield Pair.of(splitRight, rawRight.second());
+                yield splitRight;
             }
             // case 3: key == another already in the tree, return the
             // tree unchanged (we don't deal with dups for now)
-            case AATr<A> _ -> Pair.of(t, false);
+            case AATr<A> _ -> t;
         };
     }
 
@@ -203,7 +199,7 @@ final class BalancedBst<A> {
      * O(log n) - deletes a key-value pair from this tree; returns
      * a pair (resulting-tree, was-deleted).
      */
-    public Pair<BalancedBst<A>, Boolean> delete(A key) {
+    public BalancedBst<A> delete(A key) {
         var updatedRep = delete(key, rep);
         throw new UnsupportedOperationException("not done");
     }

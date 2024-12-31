@@ -29,14 +29,21 @@ public final class VTreeMap<K, V> {
     }
 
     public VTreeMap<K, V> insert(K key, V val) {
-        var kv          = Pair.of(key, val);
-        var updatedRep  = bst.insert(kv);
-        var updatedSize = switch (updatedRep) {
-            case Pair(_, var updated) when updated -> this.size + 1;
-            default                                -> this.size;
-        };
-        return new VTreeMap<>(keyOrder,
-                updatedRep.first(), updatedSize);
+        var kv = Pair.of(key, val);
+        var updatedRep = bst;
+        var updatedSz = this.size;
+        var maybeFound = bst.find(kv);
+        if (maybeFound.isDefined()) {
+            // delete found (k,v) and replace it with (k,v') where
+            // v, v' may vary
+            updatedRep = bst.delete(maybeFound.get()).insert(kv);
+            // don't update this.size as we're just replacing (k,v) with
+            // (k,v')
+        } else {
+            updatedRep = bst.insert(kv);
+            updatedSz += 1;
+        }
+        return new VTreeMap<>(keyOrder, updatedRep, updatedSz);
     }
 
 
