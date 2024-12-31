@@ -29,15 +29,14 @@ public final class VTreeMap<K, V> {
     }
 
     public VTreeMap<K, V> insert(K key, V val) {
-        var kv = Pair.of(key, val);
-        var sz = this.size;
-        throw new UnsupportedOperationException("not done");
-        /*var existingPair = bst.find(kv);
-        return switch (existingPair) {
-            case Maybe.Some(Pair(var k, var v)) -> bst
-            default -> new VTreeMap<>(keyOrder, , sz + 1);
+        var kv          = Pair.of(key, val);
+        var updatedRep  = bst.insert(kv);
+        var updatedSize = switch (updatedRep) {
+            case Pair(_, var updated) when updated -> this.size + 1;
+            default                                -> this.size;
         };
-        return*/
+        return new VTreeMap<>(keyOrder,
+                updatedRep.first(), updatedSize);
     }
 
 
