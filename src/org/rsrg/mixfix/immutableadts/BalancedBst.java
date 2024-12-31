@@ -158,8 +158,8 @@ final class BalancedBst<A> {
 
     private boolean contains(A key, AATr<A> t) {
         return switch (t) {
-            case AATr.Node(_, var a, var k, _) when order.compare(k, key) < 0 -> contains(key, a);
-            case AATr.Node(_, _, var k, var b) when order.compare(k, key) > 0 -> contains(key, b);
+            case AATr.Node(_, var a, var k, _) when order.compare(key, k) < 0 -> contains(key, a);
+            case AATr.Node(_, _, var k, var b) when order.compare(key, k) > 0 -> contains(key, b);
             case AATr.Node(_, _, _, _)  -> true;
             case AATr.Empty<A> _        -> false;
         };
