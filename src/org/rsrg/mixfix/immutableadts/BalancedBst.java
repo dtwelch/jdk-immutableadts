@@ -4,6 +4,9 @@ import org.rsrg.mixfix.util.Maybe;
 import org.rsrg.mixfix.util.Pair;
 
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
 import java.util.function.BiFunction;
 
 /**
@@ -22,7 +25,7 @@ import java.util.function.BiFunction;
  *
  * @param <A> the type stored within the nodes of this tree.
  */
-final class BalancedBst<A> {
+final class BalancedBst<A> implements Iterable<A> {
     private final Comparator<A> order;
     final AATr<A> rep;
 
@@ -213,5 +216,57 @@ final class BalancedBst<A> {
             case AATr.Node(_, var lt, _, AATr.Empty<A> _) -> lt;
             case AATr.Node(_, var lt, var k, var rt) ->
         };*/
+    }
+
+    @Override public Iterator<A> iterator() {
+        return new BstIter();
+    }
+
+    private final class BstIter implements Iterator<A> {
+        /** Simulates the recursive call stack to avoid recursion. */
+        private final Stack<AATr<A>> stack = new Stack<>();
+        private A nextElement;
+
+        public BstIter() {
+            pushLeft(rep);
+            advance(); // init nextElement
+        }
+
+        private void pushLeft(AATr<A> node) {
+            while (node instanceof AATr.Node<A> n) {
+                stack.push(n);
+                node = n.left();
+            }
+        }
+
+        /** Advances to the next element in the traversal. */
+        private void advance() {
+            if (stack.isEmpty()) {
+                nextElement = null;
+                return;
+            }
+
+            var node = stack.pop();
+            switch (node) {
+                case AATr.Node(_, var a, var k, var b) -> {
+                    pushLeft(b);
+                    nextElement = k;
+                }
+                case AATr.Empty<A> _ -> nextElement = null;
+            }
+        }
+
+        @Override public boolean hasNext() {
+            return nextElement != null;
+        }
+
+        @Override public A next() {
+            if (nextElement == null) {
+                throw new NoSuchElementException("no more elements in the tree.");
+            }
+            var result = nextElement;
+            advance();
+            return result;
+        }
     }
 }

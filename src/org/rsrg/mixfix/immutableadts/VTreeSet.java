@@ -1,6 +1,7 @@
 package org.rsrg.mixfix.immutableadts;
 
 import java.util.Comparator;
+import java.util.TreeSet;
 
 public final class VTreeSet<A> {
 
@@ -8,8 +9,7 @@ public final class VTreeSet<A> {
     private final BalancedBst<A> bst;
     private final Comparator<A> keyOrder;
 
-    private VTreeSet(Comparator<A> keyOrder,
-                     BalancedBst<A> bst, int size) {
+    private VTreeSet(Comparator<A> keyOrder, BalancedBst<A> bst, int size) {
         this.keyOrder = keyOrder;
         this.bst = bst;
         this.size = size;
@@ -18,11 +18,52 @@ public final class VTreeSet<A> {
     public static <T> VTreeSet<T> empty(Comparator<T> o) {
         return new VTreeSet<>(o, BalancedBst.empty(o), 0);
     }
-/*
-    public static <A extends Comparable<A>, B extends Comparable<B>> VTreeMap<A, B> empty() {
+
+    public static <A extends Comparable<A>> VTreeSet<A> empty() {
         return empty(Comparable::compareTo);
     }
 
-    private final BalancedBst<A>
-    private VTreeSet()*/
+    public static <T> VTreeSet<T> singleton(Comparator<T> o, T item) {
+        return empty(o).insert(item);
+    }
+
+    public static <T extends Comparable<T>> VTreeSet<T> singleton(T item) {
+        return singleton(Comparable::compareTo, item);
+    }
+
+    /**
+     * O(log n) - adds {@code item} to this set; ignores it if already
+     * present.
+     */
+    public VTreeSet<A> insert(A item) {
+        if (!bst.contains(item)) {
+            return this;
+        }
+        var updatedBst = this.bst.insert(item);
+        return new VTreeSet<>(keyOrder, updatedBst, this.size + 1);
+    }
+
+    /** O(1) - returns the number of items in this set. */
+    public int size() {
+        return size;
+    }
+
+    /** O(log n) - removes {@code item} from this set if present. */
+    public VTreeSet<A> remove(A item) {
+        var updatedSize = this.size;
+        var updatedBst = bst;
+        if (bst.contains(item)) {
+            updatedBst = bst.delete(item);
+            updatedSize = updatedSize - 1;
+        }
+        return new VTreeSet<>(keyOrder, updatedBst, updatedSize);
+    }
+
+    /** O(n + m) - returns the union of sets {@code n} and {@code m}. */
+    public VTreeSet<A> union(VTreeSet<A> n, VTreeSet<A> m) {
+        var combined = VTreeSet.empty(keyOrder);
+        throw new UnsupportedOperationException("not done") ;
+    }
+
+    //public VTreeSet<A> foldl
 }
