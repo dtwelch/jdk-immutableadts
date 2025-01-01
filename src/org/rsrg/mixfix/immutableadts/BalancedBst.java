@@ -219,15 +219,16 @@ final class BalancedBst<A> implements Iterable<A> {
     }
 
     @Override public Iterator<A> iterator() {
-        return new BstIter();
+        return new InOrderBstIter();
     }
 
-    private final class BstIter implements Iterator<A> {
+    private final class InOrderBstIter implements Iterator<A> {
+
         /** Simulates the recursive call stack to avoid recursion. */
         private final Stack<AATr<A>> stack = new Stack<>();
         private A nextElement;
 
-        public BstIter() {
+        public InOrderBstIter() {
             pushLeft(rep);
             advance(); // init nextElement
         }
@@ -248,7 +249,7 @@ final class BalancedBst<A> implements Iterable<A> {
 
             var node = stack.pop();
             switch (node) {
-                case AATr.Node(_, var a, var k, var b) -> {
+                case AATr.Node(_, _, var k, var b) -> {
                     pushLeft(b);
                     nextElement = k;
                 }
