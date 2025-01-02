@@ -171,13 +171,25 @@ final class BalancedBst<A> implements Iterable<A> {
     public boolean null_() {
         return switch (rep) {
             case AlgebraicTr.Empty<A> _ -> true;
-            default              -> false;
+            default                     -> false;
         };
     }
 
     /**
      * O(n) - performs a (left) fold over the data stored in the nodes of
      * this tree using the provided binary function {@code f}.
+     * <p>
+     * Note: tree is guaranteed to have height at most log n where
+     * n is the total number of nodes the tree
+     * (nb: assumes {@link #insert} is correct, re: enforcing invariants A1-A4).
+     * <p>
+     * I.e.: so the depth of the recursive call stack for any operation on this
+     * balanced bst {@code rep} can be at most log n (where n=total # of nodes).
+     * <p>
+     * This is in contrast to a functional linked list where we can't pop the
+     * stack until we've reached an empty node (after pushing frames for all
+     * N nodes...). But since we're balanced here, we get to pop the stack more
+     * often -- there will never be all n nodes on the call stack at once.
      */
     public <B> B fold(BalancedBst<A> t, B neutral,
                        BiFunction<B, A, B> f) {
@@ -185,32 +197,18 @@ final class BalancedBst<A> implements Iterable<A> {
         return result;
     }
 
-    private <B> B fold(AlgebraicTr<A> t, B neutral,
-                       BiFunction<B, A, B> f) {
-        throw new UnsupportedOperationException("NOT DONE");
-        /*return switch (t) {
+    private <B> B fold(AlgebraicTr<A> t, B neutral, BiFunction<B, A, B> f) {
+        return switch (t) {
             case AlgebraicTr.Node(_, var a, var k, var b) -> {
-                var stk = new Stack<AlgebraicTr<A>>();
-                var curr = a;
-                while (curr instanceof AlgebraicTr.Node<A> n) {
-                    stk.push(curr);
-                    curr = n.left();
-                }
-                var res = f.apply(neutral, k);
-                curr = stk.pop();
-                while (curr instanceof AlgebraicTr.Node<A> n) {
-
-                    curr = stk.pop();
-                }
-                //var leftVal = fold(a, neutral, f);
-                //var updatedRootVal = f.apply(leftVal, k);
-                //var rightVal = fold(b, updatedRootVal, f);
+                var leftVal = fold(a, neutral, f);
+                var updatedRootVal = f.apply(leftVal, k);
+                var rightVal = fold(b, updatedRootVal, f);
                 yield rightVal;
             }
             case AlgebraicTr.Empty<A> _ -> neutral;
-        };*/
+        };
     }
-
+    
     /**
      * O(log n) - deletes a key-value pair from this tree; returns
      * a pair (resulting-tree, was-deleted).
