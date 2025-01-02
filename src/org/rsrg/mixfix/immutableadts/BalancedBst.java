@@ -179,17 +179,16 @@ final class BalancedBst<A> implements Iterable<A> {
      * O(n) - performs a (left) fold over the data stored in the nodes of
      * this tree using the provided binary function {@code f}.
      * <p>
-     * Note: tree is guaranteed to have height at most log n where
-     * n is the total number of nodes the tree
-     * (nb: assumes {@link #insert} is correct, re: enforcing invariants A1-A4).
-     * <p>
-     * I.e.: so the depth of the recursive call stack for any operation on this
-     * balanced bst {@code rep} can be at most log n (where n=total # of nodes).
+     * Note: assuming {@link #insert} is correct (re: enforcing
+     * invariants A1-A4), the depth of the recursive call stack for any
+     * operation on balanced bst {@code rep} will not exceed log n (where
+     * n=total # of nodes).
      * <p>
      * This is in contrast to a functional linked list where we can't pop the
-     * stack until we've reached an empty node (after pushing frames for all
-     * N nodes...). But since we're balanced here, we get to pop the stack more
-     * often -- there will never be all n nodes on the call stack at once.
+     * stack until we've reached the empty node at the end of the list (after
+     * pushing frames for all N preceding nodes...). But since we're balanced
+     * here, we get to pop the stack more often -- there will never be all n
+     * nodes on the call stack at once.
      */
     public <B> B fold(BalancedBst<A> t, B neutral,
                        BiFunction<B, A, B> f) {
@@ -208,7 +207,7 @@ final class BalancedBst<A> implements Iterable<A> {
             case AlgebraicTr.Empty<A> _ -> neutral;
         };
     }
-    
+
     /**
      * O(log n) - deletes a key-value pair from this tree; returns
      * a pair (resulting-tree, was-deleted).

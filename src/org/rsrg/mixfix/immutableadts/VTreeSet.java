@@ -59,13 +59,16 @@ public final class VTreeSet<A> implements Iterable<A> {
         return new VTreeSet<>(keyOrder, updatedBst, updatedSize);
     }
 
-    /** O(n + m) - returns the union of sets {@code s} and {@code t}. */
+    /**
+     * (note) potential: O((n+m) * log(n+m)) - returns the union of sets
+     * {@code s} and {@code t}.
+     */
     public VTreeSet<A> union(VTreeSet<A> s, VTreeSet<A> t) {
         var combined = VTreeSet.empty(keyOrder);
-        for (var a : s) { // O(n)
+        for (var a : s) { // O(n log |s|) - or: O(n log n)
             combined = combined.insert(a);
         }
-        for (var a : t) { // O(m)
+        for (var a : t) { // O(m log |t| - |s|): or: O(m log (n + m))
             combined = combined.insert(a);
         }
         return combined;
