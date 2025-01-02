@@ -13,8 +13,8 @@ public final class VTreeMap<K, V> {
     private final BalancedBst<Pair<K, V>> bst;
     private final Comparator<K> keyOrder;
 
-    private VTreeMap(Comparator<K> keyOrder,
-                     BalancedBst<Pair<K, V>> bst, int size) {
+    private VTreeMap(Comparator<K> keyOrder, BalancedBst<Pair<K, V>> bst,
+                     int size) {
         this.keyOrder = keyOrder;
         this.bst = bst;
         this.size = size;
@@ -43,8 +43,8 @@ public final class VTreeMap<K, V> {
                 // delete found (k,v) and replace it with (k,v') where
                 // v, v' may vary
                     updatedRep = bst.delete(p).insert(toAdd);
-                // don't update this.size as we're just replacing (k,v) with
-                // (k,v')
+            // don't update this.size as we're just replacing (k,v) with
+            // (k,v')
             default -> {
                 updatedRep = bst.insert(toAdd);
                 updatedSz += 1;
@@ -53,25 +53,56 @@ public final class VTreeMap<K, V> {
         return new VTreeMap<>(keyOrder, updatedRep, updatedSz);
     }
 
-    public Maybe<V> get(K key) {
+    /**
+     * O(log n) - return true if {@code key} is present in this map;
+     * false otherwise.
+     */
+    public Maybe<V> lookup(K key) {
         // search on a pair with a dummy (null) value -- this
         // works since our bst only compares on keys
         return switch (bst.find(Pair.of(key, null))) {
             case Some(Pair(_, var v)) -> of(v);
-            default                   -> none();
+            default -> none();
         };
     }
 
-    public boolean containsKey(K key) {
+    /**
+     * O(log n) - returns true only if {@code key} is in this map;
+     * false otherwise.
+     */
+    public boolean member(K key) {
         return switch (bst.find(Pair.of(key, null))) {
-            case Some(Pair(var k, _)) when keyOrder.compare(k, key) == 0 -> true;
-            default                                                      -> false;
+            case Some(Pair(var k, _)) when keyOrder.compare(k, key) == 0 ->
+                    true;
+            default -> false;
         };
     }
 
+    public VList<Pair<K, V>> toList() {
+        throw new UnsupportedOperationException("not done");
+        /*var res = VList.<Pair<K, V>>empty();
+        for (var kv : bst) {
+            res = res.append(kv);
+        }
+        return res;*/
+    }
+
+    /** O(1) - returns the number of key value pairs in this map. */
     public int size() {
         return size;
     }
 
-
+    @Override public String toString() {
+        var sb = new StringBuilder("[");
+        var first = true;
+        for (var x : bst) {
+            if (first) {
+                sb.append(x);
+                first = false;
+            } else {
+                sb.append(", ").append(x);
+            }
+        }
+        return sb.append("]").toString();
+    }
 }

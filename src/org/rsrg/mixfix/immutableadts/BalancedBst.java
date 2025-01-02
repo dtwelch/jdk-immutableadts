@@ -13,7 +13,7 @@ import java.util.function.BiFunction;
  * An immutable BST that guarantees an O(log n) worst case runtime
  * for standard operations (e.g., insert, delete, contains, etc.).
  * <p>
- * Here, {@link AATr} is the underlying algebraic type we use as the
+ * Here, {@link AlgebraicTr} is the underlying algebraic type we use as the
  * representation for our balanced search tree. Its current state is
  * tracked in the {@code rep} field.
  * <p>
@@ -27,9 +27,9 @@ import java.util.function.BiFunction;
  */
 final class BalancedBst<A> implements Iterable<A> {
     private final Comparator<A> order;
-    final AATr<A> rep;
+    final AlgebraicTr<A> rep;
 
-    private BalancedBst(Comparator<A> order, AATr<A> rep) {
+    private BalancedBst(Comparator<A> order, AlgebraicTr<A> rep) {
         this.order = order;
         this.rep = rep;
     }
@@ -37,7 +37,7 @@ final class BalancedBst<A> implements Iterable<A> {
     // factory methods:
 
     static <T> BalancedBst<T> empty(Comparator<T> o) {
-        return new BalancedBst<>(o, AATr.empty());
+        return new BalancedBst<>(o, AlgebraicTr.empty());
     }
 
     static <T extends Comparable<T>> BalancedBst<T> empty() {
@@ -68,26 +68,26 @@ final class BalancedBst<A> implements Iterable<A> {
     }
 
     // recursive helper:
-    private AATr<A> insert(A k, AATr<A> t) {
+    private AlgebraicTr<A> insert(A k, AlgebraicTr<A> t) {
         return switch (t) {
-            case AATr.Empty<A> _ -> AATr.node(1, AATr.empty(), k, AATr.empty());
-            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) < 0 -> {
+            case AlgebraicTr.Empty<A> _ -> AlgebraicTr.node(1, AlgebraicTr.empty(), k, AlgebraicTr.empty());
+            case AlgebraicTr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) < 0 -> {
                 var rawLeft = insert(k, a);
-                var nodeToSkew = AATr.node(trLvl, rawLeft, trKey, b);
+                var nodeToSkew = AlgebraicTr.node(trLvl, rawLeft, trKey, b);
                 var skewedLeft = skew(nodeToSkew);
                 var splitLeft = split(skewedLeft);
                 yield splitLeft;
             }
-            case AATr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) > 0 -> {
+            case AlgebraicTr.Node(var trLvl, var a, var trKey, var b) when order.compare(k, trKey) > 0 -> {
                 var rawRight = insert(k, b);
-                var nodeToSkew = AATr.node(trLvl, a, trKey, rawRight);
+                var nodeToSkew = AlgebraicTr.node(trLvl, a, trKey, rawRight);
                 var skewedRight = skew(nodeToSkew);
                 var splitRight = split(skewedRight);
                 yield splitRight;
             }
             // case 3: key == another already in the tree, return the
             // tree unchanged (we don't deal with dups for now)
-            case AATr<A> _ -> t;
+            case AlgebraicTr<A> _ -> t;
         };
     }
 
@@ -100,16 +100,16 @@ final class BalancedBst<A> implements Iterable<A> {
      *   a   b     c            a     b  c
      * </code></pre>
      */
-    private AATr<A> skew(AATr<A> t) {
+    private AlgebraicTr<A> skew(AlgebraicTr<A> t) {
         return switch (t) {
             //@formatter:off
-            case AATr.Node(var xLvl,
-                           AATr.Node(var yLvl, var a, var yKey, var b),
+            case AlgebraicTr.Node(var xLvl,
+                           AlgebraicTr.Node(var yLvl, var a, var yKey, var b),
                            var xKey,
                            var c
             //@formatter:on
-            ) when xLvl == yLvl -> AATr.node(xLvl, a, yKey, AATr.node(xLvl, b, xKey, c));
-            case AATr<A> _ -> t;
+            ) when xLvl == yLvl -> AlgebraicTr.node(xLvl, a, yKey, AlgebraicTr.node(xLvl, b, xKey, c));
+            case AlgebraicTr<A> _ -> t;
         };
     }
 
@@ -117,15 +117,15 @@ final class BalancedBst<A> implements Iterable<A> {
      * O(1) - fixup operation in the event that the root of the tree {@code t} previously
      * skewed had a right child at the same level.
      */
-    private AATr<A> split(AATr<A> t) {
+    private AlgebraicTr<A> split(AlgebraicTr<A> t) {
         return switch (t) { //@formatter:off
-            case AATr.Node(var xLvl,
-                           AATr.Node(var yLvl, var a, var yKey, var b),
+            case AlgebraicTr.Node(var xLvl,
+                           AlgebraicTr.Node(var yLvl, var a, var yKey, var b),
                            var xKey,
                            var c) when xLvl == yLvl ->
                     //@formatter:on
-                    AATr.node(xLvl, a, yKey, AATr.node(xLvl, b, xKey, c));
-            case AATr<A> _ -> t;
+                    AlgebraicTr.node(xLvl, a, yKey, AlgebraicTr.node(xLvl, b, xKey, c));
+            case AlgebraicTr<A> _ -> t;
         };
     }
 
@@ -133,11 +133,11 @@ final class BalancedBst<A> implements Iterable<A> {
         return find(key, rep);
     }
 
-    private Maybe<A> find(A key, AATr<A> t) {
+    private Maybe<A> find(A key, AlgebraicTr<A> t) {
         return switch (t)  {
-            case AATr.Node(_, var a, var k, _) when order.compare(key, k) < 0  -> find(key, a);
-            case AATr.Node(_, _, var k, var b) when order.compare(key, k) > 0  -> find(key, b);
-            case AATr.Node(_, _, var k, var _) when order.compare(key, k) == 0 -> Maybe.of(k);
+            case AlgebraicTr.Node(_, var a, var k, _) when order.compare(key, k) < 0  -> find(key, a);
+            case AlgebraicTr.Node(_, _, var k, var b) when order.compare(key, k) > 0  -> find(key, b);
+            case AlgebraicTr.Node(_, _, var k, var _) when order.compare(key, k) == 0 -> Maybe.of(k);
             default -> Maybe.none();
         };
     }
@@ -155,12 +155,12 @@ final class BalancedBst<A> implements Iterable<A> {
         return contains(key, rep);
     }
 
-    private boolean contains(A key, AATr<A> t) {
+    private boolean contains(A key, AlgebraicTr<A> t) {
         return switch (t) {
-            case AATr.Node(_, var a, var k, _) when order.compare(key, k) < 0 -> contains(key, a);
-            case AATr.Node(_, _, var k, var b) when order.compare(key, k) > 0 -> contains(key, b);
-            case AATr.Node(_, _, _, _)  -> true;
-            case AATr.Empty<A> _        -> false;
+            case AlgebraicTr.Node(_, var a, var k, _) when order.compare(key, k) < 0 -> contains(key, a);
+            case AlgebraicTr.Node(_, _, var k, var b) when order.compare(key, k) > 0 -> contains(key, b);
+            case AlgebraicTr.Node(_, _, _, _)  -> true;
+            case AlgebraicTr.Empty<A> _        -> false;
         };
     }
 
@@ -170,7 +170,7 @@ final class BalancedBst<A> implements Iterable<A> {
      */
     public boolean null_() {
         return switch (rep) {
-            case AATr.Empty<A> _ -> true;
+            case AlgebraicTr.Empty<A> _ -> true;
             default              -> false;
         };
     }
@@ -185,17 +185,30 @@ final class BalancedBst<A> implements Iterable<A> {
         return result;
     }
 
-    private <B> B fold(AATr<A> t, B neutral,
+    private <B> B fold(AlgebraicTr<A> t, B neutral,
                        BiFunction<B, A, B> f) {
-        return switch (t) {
-            case AATr.Node(_, var a, var k, var b) -> {
-                var leftVal = fold(a, neutral, f);
-                var updatedRootVal = f.apply(leftVal, k);
-                var rightVal = fold(b, updatedRootVal, f);
+        throw new UnsupportedOperationException("NOT DONE");
+        /*return switch (t) {
+            case AlgebraicTr.Node(_, var a, var k, var b) -> {
+                var stk = new Stack<AlgebraicTr<A>>();
+                var curr = a;
+                while (curr instanceof AlgebraicTr.Node<A> n) {
+                    stk.push(curr);
+                    curr = n.left();
+                }
+                var res = f.apply(neutral, k);
+                curr = stk.pop();
+                while (curr instanceof AlgebraicTr.Node<A> n) {
+
+                    curr = stk.pop();
+                }
+                //var leftVal = fold(a, neutral, f);
+                //var updatedRootVal = f.apply(leftVal, k);
+                //var rightVal = fold(b, updatedRootVal, f);
                 yield rightVal;
             }
-            case AATr.Empty<A> _ -> neutral;
-        };
+            case AlgebraicTr.Empty<A> _ -> neutral;
+        };*/
     }
 
     /**
@@ -208,7 +221,7 @@ final class BalancedBst<A> implements Iterable<A> {
     }
 
     // returns a (tree-post-deletion : AATr<A>, keyRemoved : boolean)
-    private Pair<AATr<A>, Boolean> delete(A key, AATr<A> t) {
+    private Pair<AlgebraicTr<A>, Boolean> delete(A key, AlgebraicTr<A> t) {
         throw new UnsupportedOperationException("not done");
         /*return switch (t) {
             case AATr.Empty<A> e -> e;
@@ -225,7 +238,7 @@ final class BalancedBst<A> implements Iterable<A> {
     private final class InOrderBstIter implements Iterator<A> {
 
         /** Simulates the recursive call stack to avoid recursion. */
-        private final Stack<AATr<A>> stack = new Stack<>();
+        private final Stack<AlgebraicTr<A>> stack = new Stack<>();
         private A nextElement;
 
         public InOrderBstIter() {
@@ -233,8 +246,8 @@ final class BalancedBst<A> implements Iterable<A> {
             advance(); // init nextElement
         }
 
-        private void pushLeft(AATr<A> node) {
-            while (node instanceof AATr.Node<A> n) {
+        private void pushLeft(AlgebraicTr<A> node) {
+            while (node instanceof AlgebraicTr.Node<A> n) {
                 stack.push(n);
                 node = n.left();
             }
@@ -249,11 +262,11 @@ final class BalancedBst<A> implements Iterable<A> {
 
             var node = stack.pop();
             switch (node) {
-                case AATr.Node(_, _, var k, var b) -> {
+                case AlgebraicTr.Node(_, _, var k, var b) -> {
                     pushLeft(b);
                     nextElement = k;
                 }
-                case AATr.Empty<A> _ -> nextElement = null;
+                case AlgebraicTr.Empty<A> _ -> nextElement = null;
             }
         }
 

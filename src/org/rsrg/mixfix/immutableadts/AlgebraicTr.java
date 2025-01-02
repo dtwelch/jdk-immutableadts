@@ -7,23 +7,23 @@ package org.rsrg.mixfix.immutableadts;
  * Note: marked private as this type hierarchy is really an implementation of
  * the api for {@link BalancedBst}.
  */
-sealed interface AATr<A> {
-    final class Empty<A> implements AATr<A> {
-        private static final AATr<?> Instance = new Empty<>();
+sealed interface AlgebraicTr<A> {
+    final class Empty<A> implements AlgebraicTr<A> {
+        private static final AlgebraicTr<?> Instance = new Empty<>();
 
         private Empty() {
         }
     }
 
-    record Node<A>(int lvl, AATr<A> left, A key, AATr<A> right) implements AATr<A> {
+    record Node<A>(int lvl, AlgebraicTr<A> left, A key, AlgebraicTr<A> right) implements AlgebraicTr<A> {
     }
 
     // "smart constructors" for the two node types
-    @SuppressWarnings("unchecked") static <T> AATr<T> empty() {
-        return (AATr<T>) Empty.Instance;
+    @SuppressWarnings("unchecked") static <T> AlgebraicTr<T> empty() {
+        return (AlgebraicTr<T>) Empty.Instance;
     }
 
-    static <T> AATr<T> node(int lvl, AATr<T> left, T data, AATr<T> right) {
+    static <T> AlgebraicTr<T> node(int lvl, AlgebraicTr<T> left, T data, AlgebraicTr<T> right) {
         return new Node<>(lvl, left, data, right);
     }
 }

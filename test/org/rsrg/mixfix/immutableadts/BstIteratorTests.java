@@ -9,7 +9,7 @@ import java.util.NoSuchElementException;
 public class BstIteratorTests {
 
     @Test public void testEmptyTreeIterator() {
-        BalancedBst<Integer> emptyTree = BalancedBst.empty(Integer::compareTo);
+        var emptyTree = BalancedBst.empty(Integer::compareTo);
         var iterator = emptyTree.iterator();
         Assertions.assertFalse(iterator.hasNext(),
                 "Iterator should have no " + "elements for an empty tree");

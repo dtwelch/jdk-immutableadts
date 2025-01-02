@@ -1,9 +1,9 @@
 package org.rsrg.mixfix.immutableadts;
 
 import java.util.Comparator;
-import java.util.TreeSet;
+import java.util.Iterator;
 
-public final class VTreeSet<A> {
+public final class VTreeSet<A> implements Iterable<A> {
 
     private final int size;
     private final BalancedBst<A> bst;
@@ -59,11 +59,35 @@ public final class VTreeSet<A> {
         return new VTreeSet<>(keyOrder, updatedBst, updatedSize);
     }
 
-    /** O(n + m) - returns the union of sets {@code n} and {@code m}. */
-    public VTreeSet<A> union(VTreeSet<A> n, VTreeSet<A> m) {
+    /** O(n + m) - returns the union of sets {@code s} and {@code t}. */
+    public VTreeSet<A> union(VTreeSet<A> s, VTreeSet<A> t) {
         var combined = VTreeSet.empty(keyOrder);
-        throw new UnsupportedOperationException("not done") ;
+        for (var a : s) { // O(n)
+            combined = combined.insert(a);
+        }
+        for (var a : t) { // O(m)
+            combined = combined.insert(a);
+        }
+        return combined;
     }
 
-    //public VTreeSet<A> foldl
+    @Override public Iterator<A> iterator() {
+        return bst.iterator();
+    }
+
+    //public VTreeSet<A> foldl()
+
+    @Override public String toString() {
+        var sb = new StringBuilder("[");
+        var first = true;
+        for (var x : bst) {
+            if (first) {
+                sb.append(x);
+                first = false;
+            } else {
+                sb.append(", ").append(x);
+            }
+        }
+        return sb.append("]").toString();
+    }
 }
