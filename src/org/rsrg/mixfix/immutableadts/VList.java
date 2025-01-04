@@ -38,7 +38,7 @@ public final class VList<A> {
         return switch (Pair.of(xs, ys)) {
             case Pair(AlgebraicLst.Empty<A> _, var b) -> b;
             case Pair(AlgebraicLst.NonEmpty(var head, var tail), var ys0) ->
-                    AlgebraicLst.cons(head, append(tail, ys));
+                    AlgebraicLst.cons(head, append(tail, ys0));
         };
     }
 
