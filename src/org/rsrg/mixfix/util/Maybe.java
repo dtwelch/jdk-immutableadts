@@ -66,8 +66,10 @@ public sealed interface Maybe<A> {
         }
 
         @Override public boolean equals(Object o) {
-            return o instanceof Maybe.Some<?> om &&
-                    this.value.equals(om.value);
+            return switch (o) {
+                case Maybe.Some(var ov) -> this.value.equals(ov);
+                default                 -> false;
+            };
         }
 
         @Override public int hashCode() {
