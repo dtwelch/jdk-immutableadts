@@ -214,18 +214,64 @@ final class BalancedBst<A> implements Iterable<A> {
      */
     public BalancedBst<A> delete(A key) {
         var updatedRep = delete(key, rep);
-        throw new UnsupportedOperationException("not done");
+        return new BalancedBst<>(order, rep);
     }
 
-    // returns a (tree-post-deletion : AATr<A>, keyRemoved : boolean)
-    private Pair<AlgebraicTr<A>, Boolean> delete(A key, AlgebraicTr<A> t) {
-        throw new UnsupportedOperationException("not done");
-        /*return switch (t) {
-            case AATr.Empty<A> e -> e;
-            case AATr.Node(_, AATr.Empty<A> _, _, var rt) -> rt;
-            case AATr.Node(_, var lt, _, AATr.Empty<A> _) -> lt;
-            case AATr.Node(_, var lt, var k, var rt) ->
-        };*/
+    private AlgebraicTr<A> delete(A key, AlgebraicTr<A> t) {
+        return switch (t) {
+            case AlgebraicTr.Empty<A> e -> e;
+            case AlgebraicTr.Node(_, AlgebraicTr.Empty<A> _, _, var rt) -> rt;
+            case AlgebraicTr.Node(_, var lt, _, AlgebraicTr.Empty<A> _) -> lt;
+            case AlgebraicTr.Node(var lvt, var lt, var kt, var rt) -> {
+                if (order.compare(key, kt) < 0) {
+                    yield AlgebraicTr.node(lvt, delete(key, lt), kt, rt);
+                } else if (order.compare(key, kt) > 0) {
+                    yield null;
+                } else {
+                    yield null;
+                }
+            }
+        };
+    }
+
+    // delete regular
+    private Pair<AlgebraicTr<A>, A> dellrg(AlgebraicTr<A> t) {
+        return switch (t) {
+            case AlgebraicTr.Node(_, var lt, var kt, AlgebraicTr.Empty<A> _) -> Pair.of(lt, kt);
+            case AlgebraicTr.Node(var lv, var lt, var kt, var rt) -> {
+                var p = dellrg(lt);
+                yield Pair.of(AlgebraicTr.node(lv, p.first(), kt, rt), p.second());
+            }
+        };
+    }
+
+    private int lvl(AlgebraicTr<A> t) {
+        return switch (t) {
+            case AlgebraicTr.Node(var lvt, _, _, _) -> lvt;
+            default                                 -> 0;
+        };
+    }
+
+    private boolean sngl(AlgebraicTr<A> t) {
+        return switch (t) {
+            // empty trees are never a single
+            case AlgebraicTr.Empty<?> _ -> false;
+            // any tree with an empty right subtree always considered a single
+            case AlgebraicTr.Node(_, _, _, AlgebraicTr.Empty<A> _) -> true;
+            // any tree with a right subtree w/ a lower level than the root
+            // is a single
+            case AlgebraicTr.Node(var lvx,
+                                  _,
+                                  _,
+                                  AlgebraicTr.Node(var lvy, _, _, _))
+                    -> lvx > lvy;
+        };
+    }
+
+    public AlgebraicTr<A> adjust(AlgebraicTr<A> t) {
+        return switch (t) {
+            case AlgebraicTr<A> tr ->
+        };
     }
 
     @Override public Iterator<A> iterator() {

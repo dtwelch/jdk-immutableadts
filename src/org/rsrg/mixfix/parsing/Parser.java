@@ -18,7 +18,7 @@ public sealed interface Parser<A> {
 
     static <T> Maybe<T> runParser(String input, Parser<T> p) {
         var trimmed = dropSpaces(input);
-        var result  = go(trimmed, p);
+        var result  = go(input, p);
         return switch (result) {
             case Maybe.Some(Pair(var a, var b)) when isEof(a) -> Maybe.of(b);
             default -> Maybe.none();
@@ -26,8 +26,9 @@ public sealed interface Parser<A> {
     }
 
     private static <T> Maybe<Pair<String, T>> go(String input, Parser<T> p) {
-        return switch (p) {
+        throw new UnsupportedOperationException("not done");
+        /*return switch (p) {
 
-        };
+        };*/
     }
 }
