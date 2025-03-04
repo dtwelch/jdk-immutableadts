@@ -280,7 +280,12 @@ final class BalancedBst<A> implements Iterable<A> {
 
     private final class InOrderBstIter implements Iterator<A> {
 
-        /** Simulates the recursive call stack to avoid recursion. */
+        /**
+         * Simulates the recursive call stack to avoid recursion. Avoiding
+         * recursion however is not strictly something we need to avoid here
+         * (the tree being guaranteed to be balanced *I think(?)* rules out
+         * deep recursive call stacks)
+         */
         private final Stack<AlgebraicTr<A>> stack = new Stack<>();
         private A nextElement;
 

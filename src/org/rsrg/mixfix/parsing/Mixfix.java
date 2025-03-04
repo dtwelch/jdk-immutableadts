@@ -14,6 +14,10 @@ public final class Mixfix {
         enum Closed                             implements Fixity {}
     }
 
+    public Operator x() {
+        return null;
+    }
+
     record Operator(int arity) {
 
     }
