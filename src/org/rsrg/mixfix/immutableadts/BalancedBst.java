@@ -223,22 +223,31 @@ final class BalancedBst<A> implements Iterable<A> {
     private AlgebraicTr<A> delete(A key, AlgebraicTr<A> t) {
         return switch (t) {
             case AlgebraicTr.Empty<A> e -> e;
-            case AlgebraicTr.Node(var lvl, var lt, var kt, var rt) -> {
+            case AlgebraicTr.Node(var lvt, AlgebraicTr.Empty<A> _, var kt, var rt) -> rt;
+            case AlgebraicTr.Node(var lvt, var lt, var k, AlgebraicTr.Empty<A> _) -> lt;
+            case AlgebraicTr.Node(var lvt, var lt, var kt, var rt) -> {
                 if (order.compare(key, kt) < 0) {
-                    yield adjust(AlgebraicTr.node(lvl, delete(key, lt), kt, rt));
+                    yield adjust(AlgebraicTr.node(lvt, delete(key, lt), kt, rt));
                 } else if (order.compare(key, kt) > 0) {
-                    yield adjust(AlgebraicTr.node(lvl, lt, kt, delete(key, rt)));
+                    yield adjust(AlgebraicTr.node(lvt, lt, kt, delete(key, rt)));
                 } else { // found key to delete
-                    if (lt instanceof AlgebraicTr.Empty) {
-                        yield rt;
-                    } else if (rt instanceof AlgebraicTr.Empty) {
-                        yield lt;
-                    } else {
-                        // node with two children; use in-order predecessor from left subtree
-                        Pair<AlgebraicTr<A>, A> p = dellrg(lt);
-                        yield adjust(AlgebraicTr.node(lvl, p.first(), p.second(), rt));
-                    }
+                    // node with two children; use in-order predecessor from left subtree
+                    Pair<AlgebraicTr<A>, A> p = dellrg(lt);
+                    yield adjust(AlgebraicTr.node(lvt, p.first(), p.second(), rt));
                 }
+            }
+        };
+    }
+
+    // delete regular
+    private Pair<AlgebraicTr<A>, A> dellrg(AlgebraicTr<A> t) {
+        return switch (t) {
+            case AlgebraicTr.Empty<A> _ ->
+                    throw new NoSuchElementException("Cannot find in-order predecessor in an empty tree.");
+            case AlgebraicTr.Node(_, var lt, var kt, AlgebraicTr.Empty<A> _) -> Pair.of(lt, kt);
+            case AlgebraicTr.Node(var lvt, var lt, var kt, var rt) -> {
+                var p = dellrg(rt);
+                yield Pair.of(AlgebraicTr.node(lvt, lt, kt, p.first()), p.second());
             }
         };
     }
@@ -282,19 +291,6 @@ final class BalancedBst<A> implements Iterable<A> {
                 } else {
                     yield splitNode;
                 }
-            }
-        };
-    }
-
-    // delete regular
-    private Pair<AlgebraicTr<A>, A> dellrg(AlgebraicTr<A> t) {
-        return switch (t) {
-            case AlgebraicTr.Empty<A> _ ->
-                    throw new NoSuchElementException("Cannot find in-order predecessor in an empty tree.");
-            case AlgebraicTr.Node(_, var lt, var kt, AlgebraicTr.Empty<A> _) -> Pair.of(lt, kt);
-            case AlgebraicTr.Node(var lv, var lt, var kt, var rt) -> {
-                var p = dellrg(lt);
-                yield Pair.of(AlgebraicTr.node(lv, p.first(), kt, rt), p.second());
             }
         };
     }
