@@ -214,7 +214,7 @@ final class BalancedBst<A> implements Iterable<A> {
      */
     public BalancedBst<A> delete(A key) {
         var updatedRep = delete(key, rep);
-        return new BalancedBst<>(order, rep);
+        return new BalancedBst<>(order, updatedRep);
     }
 
     private AlgebraicTr<A> delete(A key, AlgebraicTr<A> t) {

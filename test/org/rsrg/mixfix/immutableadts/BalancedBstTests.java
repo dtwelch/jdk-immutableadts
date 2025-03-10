@@ -187,16 +187,38 @@ public final class BalancedBstTests {
         Assertions.assertFalse(found20.isDefined(), "find should return empty for non-existing key 20.");
     }
 
-
     @Test public void testDeleteElements() {
-        // BalancedBst<Integer> tree = BalancedBst.empty();
-        // tree = insertAndAssert(tree, 10, true);
-        // tree = insertAndAssert(tree, 20, true);
-        // tree = insertAndAssert(tree, 30, true);
-        // Pair<BalancedBst<Integer>, Boolean> deleteResult = tree.delete(20);
-        // tree = deleteResult.first();
-        // Assertions.assertTrue(deleteResult.second(), "Deletion of key 20 should succeed.");
-        // Assertions.assertEquals(2, tree.size(), "Size should be 2 after deletion.");
-        // Assertions.assertFalse(tree.contains(20), "Tree should not contain key 20 after deletion.");
+        // build a tree with several keys
+        var tree = BalancedBst.<Integer>empty();
+        int[] keys = {20, 10, 30, 5, 15, 25, 35};
+        for (var key : keys) {
+            tree = tree.insert(key);
+        }
+        Assertions.assertEquals(7, tree.size(), "Size should be 7 after insertions.");
+
+        // delete a leaf node (e.g., 5)
+        tree = tree.delete(5);
+        Assertions.assertFalse(tree.contains(5), "Tree should not contain 5 after deletion.");
+        Assertions.assertEquals(6, tree.size(), "Size should be 6 after deleting 5.");
+
+        // delete a node with one child (try deleting 30, assuming its right child is 35)
+        tree = tree.delete(30);
+        Assertions.assertFalse(tree.contains(30), "Tree should not contain 30 after deletion.");
+        Assertions.assertEquals(5, tree.size(), "Size should be 5 after deleting 30.");
+
+        // delete a node with two children (delete 20)
+        tree = tree.delete(20);
+        Assertions.assertFalse(tree.contains(20), "Tree should not contain 20 after deletion.");
+        Assertions.assertEquals(4, tree.size(), "Size should be 4 after deleting 20.");
+
+        // verify in-order traversal remains sorted and only contains remaining keys
+        ArrayList<Integer> elements = inOrderTraversal(tree);
+        List<Integer> expected = List.of(10, 15, 25, 35);
+        Assertions.assertEquals(expected, elements, "In-order traversal should yield sorted elements after deletions.");
+
+        // deleting a non-existent key should not change the tree
+        BalancedBst<Integer> before = tree;
+        tree = tree.delete(100);
+        Assertions.assertEquals(before.size(), tree.size(), "Deleting a non-existent key should not change the tree.");
     }
 }
