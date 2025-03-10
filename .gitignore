@@ -1,6 +1,7 @@
 .idea/
 target/
 out/
+*.jqwik-database
 *.iml
 *.DS_Store
 *.log
