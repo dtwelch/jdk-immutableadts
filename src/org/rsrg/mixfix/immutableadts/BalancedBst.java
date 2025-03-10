@@ -220,15 +220,64 @@ final class BalancedBst<A> implements Iterable<A> {
     private AlgebraicTr<A> delete(A key, AlgebraicTr<A> t) {
         return switch (t) {
             case AlgebraicTr.Empty<A> e -> e;
-            case AlgebraicTr.Node(_, AlgebraicTr.Empty<A> _, _, var rt) -> rt;
-            case AlgebraicTr.Node(_, var lt, _, AlgebraicTr.Empty<A> _) -> lt;
-            case AlgebraicTr.Node(var lvt, var lt, var kt, var rt) -> {
+            case AlgebraicTr.Node(var lvl, var lt, var kt, var rt) -> {
                 if (order.compare(key, kt) < 0) {
-                    yield AlgebraicTr.node(lvt, delete(key, lt), kt, rt);
+                    yield adjust(AlgebraicTr.node(lvl, delete(key, lt), kt, rt));
                 } else if (order.compare(key, kt) > 0) {
-                    yield null;
+                    yield adjust(AlgebraicTr.node(lvl, lt, kt, delete(key, rt)));
+                } else { // found key to delete
+                    if (lt instanceof AlgebraicTr.Empty) {
+                        yield rt;
+                    } else if (rt instanceof AlgebraicTr.Empty) {
+                        yield lt;
+                    } else {
+                        // node with two children; use in-order predecessor from left subtree
+                        Pair<AlgebraicTr<A>, A> p = dellrg(lt);
+                        yield adjust(AlgebraicTr.node(lvl, p.first(), p.second(), rt));
+                    }
+                }
+            }
+        };
+    }
+
+    /**
+     * Adjusts the node after deletion by possibly decreasing its level and then
+     * applying skew and split operations to re-establish the AA tree invariants.
+     */
+    private AlgebraicTr<A> adjust(AlgebraicTr<A> t) {
+        return switch (t) {
+            case AlgebraicTr.Empty<A> _ -> t;
+            case AlgebraicTr.Node(var curLvl, var lt, var kt, var rt) -> {
+                // Compute the expected level based on the children.
+                int expectedLvl = Math.min(lvl(lt), lvl(rt)) + 1;
+                int newLvl = curLvl;
+                var newRt = rt;
+                if (expectedLvl < curLvl) {
+                    newLvl = expectedLvl;
+                    // If the right child is a node and its level is too high, adjust it.
+                    if (rt instanceof AlgebraicTr.Node<A> rnode && lvl(rnode) > expectedLvl) {
+                        newRt = AlgebraicTr.node(expectedLvl, rnode.left(), rnode.key(), rnode.right());
+                    }
+                }
+                // Reconstruct node with new level and (possibly) updated right subtree.
+                var newNode = AlgebraicTr.node(newLvl, lt, kt, newRt);
+                // Apply skew on the current node.
+                var skewed = skew(newNode);
+                // If the right child is non-empty, skew it as well.
+                var skewedRight = switch (skewed) {
+                    case AlgebraicTr.Node(var lvl1, var left1, var key1, var right1)
+                            when !(right1 instanceof AlgebraicTr.Empty) ->
+                            AlgebraicTr.node(lvl1, left1, key1, skew(right1));
+                    default -> skewed;
+                };
+                // apply split on the current node.
+                var splitNode = split(skewedRight);
+                // and if possible, split the right child.
+                if (splitNode instanceof AlgebraicTr.Node(var lvl2, var left2, var key2, var right2)
+                        && !(right2 instanceof AlgebraicTr.Empty)) {
+                    yield AlgebraicTr.node(lvl2, left2, key2, split(right2));
                 } else {
-                    yield null;
+                    yield splitNode;
                 }
             }
         };
@@ -237,6 +286,8 @@ final class BalancedBst<A> implements Iterable<A> {
     // delete regular
     private Pair<AlgebraicTr<A>, A> dellrg(AlgebraicTr<A> t) {
         return switch (t) {
+            case AlgebraicTr.Empty<A> _ ->
+                    throw new NoSuchElementException("Cannot find in-order predecessor in an empty tree.");
             case AlgebraicTr.Node(_, var lt, var kt, AlgebraicTr.Empty<A> _) -> Pair.of(lt, kt);
             case AlgebraicTr.Node(var lv, var lt, var kt, var rt) -> {
                 var p = dellrg(lt);
@@ -265,12 +316,6 @@ final class BalancedBst<A> implements Iterable<A> {
                                   _,
                                   AlgebraicTr.Node(var lvy, _, _, _))
                     -> lvx > lvy;
-        };
-    }
-
-    public AlgebraicTr<A> adjust(AlgebraicTr<A> t) {
-        return switch (t) {
-            case AlgebraicTr<A> tr ->
         };
     }
 
