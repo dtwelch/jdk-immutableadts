@@ -120,11 +120,14 @@ final class BalancedBst<A> implements Iterable<A> {
     private AlgebraicTr<A> split(AlgebraicTr<A> t) {
         return switch (t) { //@formatter:off
             case AlgebraicTr.Node(var xLvl,
-                           AlgebraicTr.Node(var yLvl, var a, var yKey, var b),
+                           var a,
                            var xKey,
-                           var c) when xLvl == yLvl ->
+                           AlgebraicTr.Node(var yLvl, var b, var yKey,
+                                            AlgebraicTr.Node(var zLvl, var c, var zKey, var d))
+                           ) when xLvl == yLvl && yLvl == zLvl ->
                     //@formatter:on
-                    AlgebraicTr.node(xLvl, a, yKey, AlgebraicTr.node(xLvl, b, xKey, c));
+                    AlgebraicTr.node(xLvl + 1, AlgebraicTr.node(xLvl, a, xKey, b), yKey,
+                            AlgebraicTr.node(yLvl, c, zKey, d));
             case AlgebraicTr<A> _ -> t;
         };
     }
