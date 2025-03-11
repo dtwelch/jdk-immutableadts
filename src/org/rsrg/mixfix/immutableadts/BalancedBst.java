@@ -221,25 +221,32 @@ final class BalancedBst<A> implements Iterable<A> {
     }
 
     private AlgebraicTr<A> delete(A key, AlgebraicTr<A> t) {
-        return switch (t) {
-            case AlgebraicTr.Empty<A> e -> e;
-            case AlgebraicTr.Node(var lvt, AlgebraicTr.Empty<A> _, var kt, var rt) -> rt;
-            case AlgebraicTr.Node(var lvt, var lt, var k, AlgebraicTr.Empty<A> _) -> lt;
-            case AlgebraicTr.Node(var lvt, var lt, var kt, var rt) -> {
-                if (order.compare(key, kt) < 0) {
-                    yield adjust(AlgebraicTr.node(lvt, delete(key, lt), kt, rt));
-                } else if (order.compare(key, kt) > 0) {
-                    yield adjust(AlgebraicTr.node(lvt, lt, kt, delete(key, rt)));
-                } else { // found key to delete
-                    // node with two children; use in-order predecessor from left subtree
-                    Pair<AlgebraicTr<A>, A> p = dellrg(lt);
-                    yield adjust(AlgebraicTr.node(lvt, p.first(), p.second(), rt));
+        if (t instanceof AlgebraicTr.Empty<A>) {
+            return t;
+        }
+        if (t instanceof AlgebraicTr.Node<A>(int lvl, AlgebraicTr<A> left, A key1, AlgebraicTr<A> right)) {
+            if (order.compare(key, key1) < 0) {
+                return adjust(AlgebraicTr.node(lvl, delete(key, left), key1, right));
+            } else if (order.compare(key, key1) > 0) {
+                return adjust(AlgebraicTr.node(lvl, left, key1, delete(key, right)));
+            } else { // found the key to delete
+                // if left child is empty, return right subtree
+                if (left instanceof AlgebraicTr.Empty) {
+                    return right;
                 }
+                // if right child is empty, return left subtree
+                if (right instanceof AlgebraicTr.Empty) {
+                    return left;
+                }
+                // node with two children; use in-order predecessor from left subtree
+                var p = dellrg(left);
+                return adjust(AlgebraicTr.node(lvl, p.first(), p.second(), right));
             }
-        };
+        }
+        return t; // unreachable
     }
 
-    // delete regular
+    // delete regular - was bugged in original paper
     private Pair<AlgebraicTr<A>, A> dellrg(AlgebraicTr<A> t) {
         return switch (t) {
             case AlgebraicTr.Empty<A> _ ->
