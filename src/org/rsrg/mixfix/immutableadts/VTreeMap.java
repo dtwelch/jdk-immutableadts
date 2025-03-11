@@ -81,7 +81,7 @@ public final class VTreeMap<K, V> {
     public VList<Pair<K, V>> toList() {
         var res = VList.<Pair<K, V>>empty();
         for (var kv : bst) {
-            res = res.append(kv);
+            res = res.prepend(kv);
         }
         return res;
     }

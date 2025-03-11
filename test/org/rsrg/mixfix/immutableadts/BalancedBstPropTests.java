@@ -27,47 +27,66 @@ public class BalancedBstPropTests {
         }
         // the size should equal the number of unique elements ...
         HashSet<Integer> distinct = new HashSet<>(elements);
-        Assertions.assertEquals(distinct.size(), tree.size(),
-                "Duplicate insertions should not increase size");
+        Assertions.assertEquals(distinct.size(), tree.size(), "Duplicate insertions should not increase size");
 
         // ... and the in-order traversal should match the sorted unique set
         List<Integer> inOrder = inOrderTraversal(tree);
         List<Integer> sortedDistinct = new ArrayList<>(distinct);
         Collections.sort(sortedDistinct);
-        Assertions.assertEquals(sortedDistinct, inOrder,
-                "In-order traversal should yield sorted unique elements");
+        Assertions.assertEquals(sortedDistinct, inOrder, "In-order traversal should yield sorted unique elements");
     }
 
-
-    @Property void deletionOfNonExistentKeysIsNoOp(
-            @ForAll List<Integer> insertElements,
-            @ForAll List<Integer> deleteElements) {
+    @Property void deletionOfNonExistentKeysIsNoOp(@ForAll List<Integer> insertElements, @ForAll List<Integer> deleteElements) {
         // insert keys into the tree
-        BalancedBst<Integer> tree = BalancedBst.empty();
-        for (Integer e : insertElements) {
+        var tree = BalancedBst.<Integer>empty();
+        for (var e : insertElements) {
             tree = tree.insert(e);
         }
-        int sizeBefore = tree.size();
-        List<Integer> inOrderBefore = inOrderTraversal(tree);
+        var sizeBefore = tree.size();
+        var inOrderBefore = inOrderTraversal(tree);
 
         // delete keys that are NOT in the tree
-        HashSet<Integer> insertedSet = new HashSet<>(insertElements);
-        for (Integer e : deleteElements) {
+        var insertedSet = new HashSet<Integer>(insertElements);
+        for (var e : deleteElements) {
             if (!insertedSet.contains(e)) {
                 tree = tree.delete(e);
             }
         }
-        Assertions.assertEquals(sizeBefore, tree.size(),
-                "Deleting non-existent keys should not change the size");
-        Assertions.assertEquals(inOrderBefore, inOrderTraversal(tree),
-                "In-order traversal should remain unchanged");
+        Assertions.assertEquals(sizeBefore, tree.size(), "Deleting non-existent keys should not change the size");
+        Assertions.assertEquals(inOrderBefore, inOrderTraversal(tree), "In-order traversal should remain unchanged");
+    }
+
+    @Property void interleavedInsertionsAndDeletionsPreserveInvariants(@ForAll List<Integer> insertElements, @ForAll List<Integer> deleteElements) {
+        var tree = BalancedBst.<Integer>empty();
+        for (var e : insertElements) {
+            tree = tree.insert(e);
+        }
+        for (var e : deleteElements) {
+            tree = tree.delete(e);
+        }
+
+        // check invariants
+        assertTrue(checkAA1AA2(tree.rep), "AA1, AA2 invariants broken after deletions");
+        assertTrue(checkAA3AA4(tree.rep), "AA3, AA4 invariants broken after deletions");
+
+        // verify that the in-order traversal is sorted and equals (insertElements - deleteElements)
+        var expected = new HashSet<Integer>(insertElements);
+        expected.removeAll(deleteElements);
+        var sortedExpected = new ArrayList<Integer>(expected);
+        Collections.sort(sortedExpected);
+        var inOrder = inOrderTraversal(tree);
+        Assertions.assertEquals(sortedExpected, inOrder,
+                "In-order traversal should match expected sorted elements");
     }
 
     // --- helpers: inOrderTraversal, checkAA1AA2, checkAA3AA4 ---
 
     private ArrayList<Integer> inOrderTraversal(BalancedBst<Integer> tree) {
         ArrayList<Integer> elements = new ArrayList<>();
-        tree.fold(tree, elements, (acc, a) -> { acc.add(a); return acc; });
+        tree.fold(tree, elements, (acc, a) -> {
+            acc.add(a);
+            return acc;
+        });
         return elements;
     }
 
@@ -116,8 +135,7 @@ public class BalancedBstPropTests {
                 }
             }
             boolean aa3 = rightRightLevel < lvl;
-            boolean aa4 = lvl <= 1 || (!(node.left() instanceof AlgebraicTr.Empty)
-                    && !(node.right() instanceof AlgebraicTr.Empty));
+            boolean aa4 = lvl <= 1 || (!(node.left() instanceof AlgebraicTr.Empty) && !(node.right() instanceof AlgebraicTr.Empty));
             return aa3 && aa4 && checkAA3AA4(node.left()) && checkAA3AA4(node.right());
         }
         return true;
