@@ -38,6 +38,31 @@ public class BalancedBstPropTests {
                 "In-order traversal should yield sorted unique elements");
     }
 
+
+    @Property void deletionOfNonExistentKeysIsNoOp(
+            @ForAll List<Integer> insertElements,
+            @ForAll List<Integer> deleteElements) {
+        // insert keys into the tree
+        BalancedBst<Integer> tree = BalancedBst.empty();
+        for (Integer e : insertElements) {
+            tree = tree.insert(e);
+        }
+        int sizeBefore = tree.size();
+        List<Integer> inOrderBefore = inOrderTraversal(tree);
+
+        // delete keys that are NOT in the tree
+        HashSet<Integer> insertedSet = new HashSet<>(insertElements);
+        for (Integer e : deleteElements) {
+            if (!insertedSet.contains(e)) {
+                tree = tree.delete(e);
+            }
+        }
+        Assertions.assertEquals(sizeBefore, tree.size(),
+                "Deleting non-existent keys should not change the size");
+        Assertions.assertEquals(inOrderBefore, inOrderTraversal(tree),
+                "In-order traversal should remain unchanged");
+    }
+
     // --- helpers: inOrderTraversal, checkAA1AA2, checkAA3AA4 ---
 
     private ArrayList<Integer> inOrderTraversal(BalancedBst<Integer> tree) {

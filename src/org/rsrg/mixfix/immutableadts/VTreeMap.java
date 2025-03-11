@@ -79,12 +79,11 @@ public final class VTreeMap<K, V> {
     }
 
     public VList<Pair<K, V>> toList() {
-        throw new UnsupportedOperationException("not done");
-        /*var res = VList.<Pair<K, V>>empty();
+        var res = VList.<Pair<K, V>>empty();
         for (var kv : bst) {
             res = res.append(kv);
         }
-        return res;*/
+        return res;
     }
 
     /** O(1) - returns the number of key value pairs in this map. */

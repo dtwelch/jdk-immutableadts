@@ -33,13 +33,16 @@ public final class VList<A> {
         return new VList<>(newLst, size + ys.size);
     }
 
-    private AlgebraicLst<A> append(AlgebraicLst<A> xs,
-                                   AlgebraicLst<A> ys) {
+    private AlgebraicLst<A> append(AlgebraicLst<A> xs, AlgebraicLst<A> ys) {
         return switch (Pair.of(xs, ys)) {
             case Pair(AlgebraicLst.Empty<A> _, var b) -> b;
-            case Pair(AlgebraicLst.NonEmpty(var head, var tail), var ys0) ->
-                    AlgebraicLst.cons(head, append(tail, ys0));
+            case Pair(AlgebraicLst.NonEmpty(var head, var tail), var ys0) -> AlgebraicLst.cons(head, append(tail, ys0));
         };
+    }
+
+    /** O(1) - prepends (cons) an {@code element} onto the front of this list. */
+    public VList<A> prepend(A element) {
+        return new VList<>(AlgebraicLst.cons(element, lst), size + 1);
     }
 
     /** O(1) - returns the number of items in this list. */
@@ -47,15 +50,16 @@ public final class VList<A> {
         return size;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         return switch (o) {
-            case VList<?> other ->
-                    this.size == other.size && this.lst.equals(other.lst);
+            case VList<?> other -> this.size == other.size && this.lst.equals(other.lst);
             default -> false;
         };
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return 31 * lst.hashCode() + size;
     }
 }
