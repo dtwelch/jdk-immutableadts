@@ -10,6 +10,14 @@ import java.util.*;
 
 public class BalancedBstPropTests {
 
+    // property: construction yields a balanced tree
+    //              (satisfying invariants AA1-AA4)
+    // ∀ (list of integers E) where T = BalancedBst.of(E).
+    //  then for each node N in T at level l
+    //  1) AA1: level(left(N)) = l - 1
+    //  2) AA2: level(right(N)) ∈ {l, l - 1}
+    //  3) AA3: level(right(right(N))) < l
+    //  4) AA4: if l > 1 then left(N) /= Empty and right(N) /= Empty
     @Property void aaTreeInvariants(@ForAll List<Integer> elements) {
         BalancedBst<Integer> tree = BalancedBst.of(elements.toArray(new Integer[0]));
 

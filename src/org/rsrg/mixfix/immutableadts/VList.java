@@ -50,16 +50,14 @@ public final class VList<A> {
         return size;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
         return switch (o) {
             case VList<?> other -> this.size == other.size && this.lst.equals(other.lst);
             default -> false;
         };
     }
 
-    @Override
-    public int hashCode() {
+    @Override public int hashCode() {
         return 31 * lst.hashCode() + size;
     }
 }

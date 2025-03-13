@@ -1,0 +1,337 @@
+package org.rsrg.mixfix.api;
+
+import io.vavr.collection.HashMap;
+import io.vavr.collection.List;
+import io.vavr.collection.Map;
+import org.rsrg.resolve.language.CompilationMessage;
+import org.rsrg.resolve.language.GenSym;
+import org.rsrg.resolve.language.ast.*;
+import org.rsrg.resolve.language.ast.Ast.Input;
+import org.rsrg.resolve.language.fmt.FormatOptions;
+import org.rsrg.resolve.language.phase.*;
+import org.rsrg.resolve.runtime.CompilationResult;
+import org.rsrg.resolve.util.*;
+import org.rsrg.resolve.util.Formatter;
+import org.rsrg.resolve.util.Formatter.NoFormatter;
+import org.rsrg.resolve.util.immutableadts.Maybe;
+import org.rsrg.resolve.util.immutableadts.Maybe.None;
+import org.rsrg.resolve.util.immutableadts.Maybe.Some;
+import org.rsrg.resolve.util.immutableadts.Pair;
+import org.rsrg.resolve.util.immutableadts.Validation;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedList;
+import java.util.function.Supplier;
+
+import static org.rsrg.resolve.Main.Extension;
+import static org.rsrg.resolve.util.immutableadts.Maybe.fromOpt;
+import static org.rsrg.resolve.util.immutableadts.Validation.flatMapN;
+import static org.rsrg.resolve.util.immutableadts.Validation.mapN;
+
+/**
+ * Main programmatic interface for Resolve.
+ */
+public final class Resolve {
+
+    /**
+     * The reserved Resolve delimiter.
+     */
+    public static final String DELIMITER = "%";
+
+    /**
+     * A sequence of inputs to be parsed into Resolve ASTs.
+     */
+    private Map<String, Input> inputs = HashMap.empty();
+
+    /**
+     * The symbol generator associated with {@code this} Resolve instance.
+     */
+    public final GenSym genSym = new GenSym();
+
+    /**
+     * Stores compiler option settings.
+     */
+    public Opts options = Opts.Default;
+
+    /**
+     * The set of sources changed since last compilation.
+     */
+    private ChangeSet changeSet = ChangeSet.Everything.INSTANCE;
+
+    /**
+     * A cache of compiled ASTs (for incremental compilation).
+     */
+    private ParsedCst.Root cachedParsedAst =
+            new ParsedCst.Root(HashMap.empty(), Maybe.none());
+
+    private WeededAst.Root cachedWeededAst =
+            new WeededAst.Root(HashMap.empty(), Maybe.none());
+
+    private ResolvedAst.Root cachedResolvedAst =
+            new ResolvedAst.Root(HashMap.empty(), HashMap.empty(),
+                    HashMap.empty(), Maybe.none(), HashMap.empty());
+
+    private KindedAst.Root cachedKindedAst =
+            new KindedAst.Root(HashMap.empty(), HashMap.empty(),
+                    HashMap.empty(), Maybe.none(), HashMap.empty());
+
+    private TypedAst.Root cachedTypedAst = new TypedAst.Root(HashMap.empty(),
+            HashMap.empty(), HashMap.empty(), HashMap.empty(), Maybe.none(),
+            HashMap.empty());
+
+    /**
+     * A sequence of internal inputs to be parsed into Resolve entity theory
+     * ASTs.
+     * <b>Note:</b> The core library *must* be present for any program to
+     * compile.
+     */
+    private List<Pair<String, String>> coreLibrary = List.empty();/*List.of
+    (new Pair<>(
+            "Prelude.resolve",
+            LocalResource.INSTANCE.get("/library/Prelude.resolve"
+            )));*/
+
+    /**
+     * The standard library is not required to be present for at least some
+     * documents to typecheck.
+     */
+    private List<Pair<String, String>> stdLibrary = List.empty();
+    // todo: fill when needed ^^
+
+    /** The default assumed charset. */
+    public final Charset defaultCharset = StandardCharsets.UTF_8;
+
+    /**
+     * A list to track the time spent in each phase and sub-phase.
+     */
+    public java.util.List<PhaseTime> phaseTimers = new LinkedList<>();
+
+    /**
+     * The current phase we are in, initially {@code null}.
+     */
+    public PhaseTime currentPhase = null;
+
+    /**
+     * The default output formatter.
+     */
+    private Formatter formatter = NoFormatter.INSTANCE;
+
+    /**
+     * Adds the given string {@code s} to the list of strings to be parsed.
+     */
+    public Resolve addSourceCode(String s) {
+        return addSourceCode("<unnamed>", s);
+    }
+
+    /**
+     * Adds the given string {@code text} with the given {@code name}.
+     */
+    public Resolve addSourceCode(String name, String text) {
+        if (name == null) {
+            throw new IllegalArgumentException("'name' must be non-null.");
+        }
+        if (text == null) {
+            throw new IllegalArgumentException("'text' must be non-null.");
+        }
+        addInput(name, new Ast.Text(name, text, false));
+        return this;
+    }
+
+    /**
+     * Adds the given path {@code p} as a Resolve source file.
+     */
+    public Resolve addResolveFile(Path p) {
+        if (p == null) {
+            throw new IllegalArgumentException("'p' must be non-null.");
+        }
+        if (!Files.exists(p)) {
+            throw new IllegalArgumentException(p + " must be a file.");
+        }
+        if (!Files.isRegularFile(p)) {
+            throw new IllegalArgumentException(p + " must be a regular file.");
+        }
+        if (!Files.isReadable(p)) {
+            throw new IllegalArgumentException(p + " must be a readable file.");
+        }
+        if (!p.getFileName().toString().endsWith(Extension)) {
+            throw new IllegalArgumentException(p + " must be a *." + Extension + " file.");
+        }
+        addInput(p.toString(), new Ast.TxtFile(p));
+        return this;
+    }
+
+    public Resolve setOptions(Opts opts) {
+        if (opts == null) {
+            throw new IllegalArgumentException("'opts' must be non-null.");
+        }
+        this.options = opts;
+        return this;
+    }
+
+    /**
+     * Returns the current formatter instance.
+     */
+    public Formatter getFormatter() {
+        return this.formatter;
+    }
+
+    public FormatOptions getFormatOptions() {
+        return new FormatOptions(FormatOptions.VarName.NAME_BASED // TODO add
+                // cli option
+        );
+    }
+
+    /**
+     * Sets the output formatter used for this Resolve instance.
+     */
+    public Resolve setFormatter(Formatter formatter) {
+        if (formatter == null) {
+            throw new IllegalArgumentException("'formatter' must be non-null.");
+        }
+        this.formatter = formatter;
+        return this;
+    }
+
+    /**
+     * Adds the given {@code input} under the given {@code name}.
+     */
+    private void addInput(String name, Input input) {
+        switch (fromOpt(inputs.get(name))) {
+            case None<?> _ -> inputs = inputs.put(name, input);
+            case Some(_) -> {
+                changeSet = changeSet.markChanged(input);
+                inputs = inputs.put(name, input);
+            }
+        }
+    }
+
+    /**
+     * Converts a list of compiler error messages to a list of printable
+     * messages. Decides whether to print the explanation based on settings.
+     */
+    public List<String> mkMessages(List<CompilationMessage> errors) {
+        // no if-else here
+        // (since I don't support detailed explanations for errors yet)
+        return errors.map(msg -> msg.message(formatter)).toList();
+    }
+
+    /**
+     * Compiles the program and returns a typed ast.
+     */
+    public Validation<ResolvedAst.Root, CompilationMessage> check() {
+
+        var resolve = this;
+        var entryPoint = resolve.options.entryPoint();
+        // @formatter:off
+        return flatMapN(Reader.run(getInputs(), this),
+            afterReader -> flatMapN(Parser.run(afterReader, entryPoint, cachedParsedAst, changeSet, resolve),
+            afterParser -> flatMapN(Weeder.run(afterParser, cachedWeededAst, changeSet, resolve),
+            afterWeeder -> flatMapN(Namer.run(afterWeeder, resolve),
+            afterNamer  -> /*flatMapN*/mapN(Resolver.run(afterNamer, cachedResolvedAst, changeSet, resolve),
+            afterResolver -> {//flatMapN(Kinder.run(afterResolver, cachedKindedAst, changeSet, resolve),
+            //afterKinder -> mapN(Typer.run(afterKinder, cachedTypedAst,changeSet, resolve),
+            //afterTyper -> {
+                if (options.incremental()) {
+                    this.cachedParsedAst = afterParser;
+                    this.cachedWeededAst = afterWeeder;
+                    this.cachedResolvedAst = afterResolver;
+                    //this.cachedKindedAst = afterKinder;
+                    //this.cachedTypedAst = afterTyper;
+                }
+                //return afterTyper;
+                return afterResolver;
+        })))))/*))*/;
+        // @formatter:off
+        /*return flatMapN(Reader.run(getInputs(), this),
+            afterReader -> flatMapN(Parser.run(afterReader, entryPoint, cachedParsedAst, changeSet, resolve),
+            afterParser -> flatMapN(Weeder.run(afterParser, cachedWeededAst, changeSet, resolve),
+            afterWeeder -> flatMapN(Namer.run(afterWeeder, resolve),
+            afterNamer  -> flatMapN(Resolver.run(afterNamer, cachedResolvedAst, changeSet, resolve),
+            afterResolver -> flatMapN(Kinder.run(afterResolver, cachedKindedAst, changeSet, resolve),
+            afterKinder -> mapN(Typer.run(afterKinder, cachedTypedAst,changeSet, resolve),
+            afterTyper -> {
+                if (options.incremental()) {
+                    this.cachedParsedAst = afterParser;
+                    this.cachedWeededAst = afterWeeder;
+                    this.cachedResolvedAst = afterResolver;
+                    this.cachedKindedAst = afterKinder;
+                    this.cachedTypedAst = afterTyper;
+                }
+                return afterTyper;
+            }))))))); */
+        // @formatter:on
+    }
+
+    public Validation<CompilationResult<ResolvedAst.Root>,
+            CompilationMessage> compile() {
+        return Validation.mapN(check(),
+                afterNamer -> new CompilationResult<>(afterNamer,
+                        getTotalTime()));
+    }
+
+    /**
+     * Returns a list of inputs constructed from the strings and paths passed
+     * to the compiler.
+     */
+    private List<Input> getInputs() {
+        List<Input> lib = switch (options.lib()) {
+            case Nix -> List.empty();
+            case Min -> getLibraryInputs(coreLibrary);
+            case All -> getLibraryInputs(coreLibrary.appendAll(stdLibrary));
+        };
+        return inputs.values().toList().appendAll(lib);
+    }
+
+    /**
+     * Returns the inputs for the given list of {@code (path, text)} pairs.
+     */
+    private List<Input> getLibraryInputs(List<Pair<String, String>> pairs) {
+        /*var m : (List[Input], (String, String) ) => List[Input] = {
+            case (xs, (name, text)) => Input.Text(name, text, stable = true)
+            :: xs
+         }
+        xs.foldLeft(List.empty[Input]) {
+            case (xs, (name, text)) => Input.Text(name, text, stable = true)
+            :: xs
+        }*/
+        //return pairs.foldLeft()
+        return List.empty();
+    }
+
+    /**
+     * Enters compilation phase supplied by {@code f} with the provided
+     * {@code title}.
+     */
+    public <A> A phase(String phaseTitle, Supplier<A> f) {
+
+        // initialize the phase time object
+        currentPhase = new PhaseTime(phaseTitle, 0, List.empty());
+
+        // measure the execution time
+        var t = System.nanoTime();
+        var r = f.get();
+        var e = System.nanoTime() - t;
+
+        // update the phase time
+        currentPhase = currentPhase.withUpdatedTime(e);
+
+        //todo: debug conditional
+
+        // return the result computed by the phase
+        return r;
+    }
+
+    /**
+     * Returns the total compilation time in nanoseconds.
+     */
+    public long getTotalTime() {
+        long x = 0L;
+        for (PhaseTime t : phaseTimers) {
+            x = x + t.time();
+        }
+        return x;
+    }
+}

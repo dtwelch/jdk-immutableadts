@@ -1,0 +1,423 @@
+package org.rsrg.mixfix.language;
+
+package org.rsrg.proto.phase;
+
+import io.vavr.Tuple2;
+import io.vavr.collection.Map;
+import io.vavr.collection.Seq;
+import org.rsrg.proto.CompilationMessage;
+import org.rsrg.proto.api.Proto;
+import org.rsrg.proto.ast.*;
+import org.rsrg.proto.ast.TokenKind.Err;
+import org.rsrg.proto.errors.LexerError;
+import org.rsrg.proto.util.immutableadts.Maybe;
+import org.rsrg.proto.util.immutableadts.Validation;
+
+import java.util.ArrayList;
+import java.util.function.Predicate;
+
+/**
+ * A lexer that is able to recognize an {@link Ast.Source}. The lexer is
+ * resilient, meaning that when an unrecognized character is encountered, the
+ * lexer will simply produce a token of kind {@link Err} and move
+ * on instead of halting.
+ * <p>
+ * There are some unrecoverable errors though, for example unterminated
+ * block-comments. In such cases, an {@link Err} will still be
+ * produced, but it will contain the rest of the source text. See LexerError
+ * for all error states.
+ */
+public final class Lexer {
+
+    private Lexer() {
+    }
+
+    private static boolean isDigit(Character c) {
+        return '0' <= c && c <= '9';
+    }
+
+    private static class State {
+
+        Position start = new Position(0, 0, 0);
+        final Position current = new Position(0, 0, 0);
+        Position end = new Position(0, 0, 0);
+        final ArrayList<Token> tokens = new ArrayList<>();
+
+        final Ast.Source src;
+
+        public State(Ast.Source src) {
+            this.src = src;
+        }
+    }
+
+    /**
+     * A source position keeping track of both line, column and absolute
+     * character offset.
+     */
+    private static class Position {
+        int line, column, offset;
+
+        public Position(int line, int column, int offset) {
+            this.line = line;
+            this.column = column;
+            this.offset = offset;
+        }
+
+        @Override public String toString() {
+            return String.format("%d:%d:%d", line, column, offset);
+        }
+    }
+
+    /** Run the lexer on multiple {@link Ast.Source}s. */
+    public static Validation<Map<Ast.Source, Token[]>, CompilationMessage> run(ReadAst.Root root, Map<Ast.Source,
+            Token[]> oldTokens, ChangeSet changeSet, Proto proto) {
+        // compute the fresh and stale sources
+        return proto.phase("Lexer", () -> {
+
+            var p = changeSet.partition(root.sources(), oldTokens);
+            var stale = p._1;
+            var fresh = p._2;
+
+            // lex each stale source file
+            // results : List<Validation<(Ast.Source, Token[]), CompilationMessage>
+            var results = stale.keySet().toList().map(src -> Validation.mapN(lex(src), tokens -> new Tuple2<>(src,
+                    tokens)));
+
+            Seq<Validation<Tuple2<Ast.Source, Token[]>, CompilationMessage>> reused = fresh.map(Validation::success);
+            return Validation.mapN(Validation.sequence(results.appendAll(reused).iterator()),
+                    sequenced -> sequenced.toMap(x -> x._1, y -> y._2));
+        });
+    }
+
+    /** Lexes a single source (file) into an array of tokens. */
+    private static Validation<Token[], CompilationMessage> lex(Ast.Source src) {
+        final State s = new State(src);
+        while (!eof(s)) {
+            whitespace(s);
+            if (!eof(s)) {
+                s.start = new Position(s.current.line, s.current.column, s.current.offset);
+                var k = scanToken(s);
+                addToken(k, s);
+            }
+        }
+
+        // add a virtual EOF token at the last position
+        addToken(TokenKind.Eof.Eof, s);
+
+        ArrayList<CompilationMessage> errors = new ArrayList<>();
+        for (Token t : s.tokens) {
+            switch (t) {
+                case Token(Err(var err), _, _, _, _, _) -> errors.add(err);
+                default -> {
+                }
+            }
+        }
+        return Validation.toSuccessOrSoftFailure(s.tokens.toArray(new Token[0]), errors);
+    }
+
+    /**
+     * Advances the current position one char forward, returning the char it
+     * was sitting on, while keeping track of line and column numbers.
+     * <p>
+     * Note: if the lexer has arrived at {@code EOF} advance will continuously
+     * return {@code EOF} without advancing (a design choice to avoid returning
+     * a {@link Maybe} of char -- fewer heap allocations).
+     */
+    private static Character advance(State s) {
+        if (s.current.offset >= s.src.data().length) {
+            return '\u0000';
+        }
+        final char c = s.src.data()[s.current.offset];
+        if (c == '\n') {
+            s.end = new Position(s.current.line, s.current.column, s.current.offset);
+            s.current.offset += 1;
+            s.current.line += 1;
+            s.current.column = 0;
+        } else {
+            s.end = new Position(s.current.line, (short) (s.current.column + 1), s.current.offset);
+            s.current.offset += 1;
+            s.current.column += 1;
+        }
+        return c;
+    }
+
+    /**
+     * Retreats the current position one char backwards while keeping track of
+     * the line and column numbers too.
+     */
+    private static void retreat(State s) {
+        if (s.current.offset == 0) {
+            return;
+        }
+        s.current.offset -= 1;
+        var c = s.src.data()[s.current.offset];
+        if (c == '\n') {
+            s.current.line -= 1;
+            s.current.column = 0;
+        } else {
+            s.current.column -= 1;
+        }
+    }
+
+    /**
+     * Peeks the character that state {@code s} is currently sitting on without
+     * advancing.
+     * <p>
+     * Note: no bound checks; this is done under the assumption that the
+     * lexer is only ever advanced via calls to {@link #advance}. Since
+     * advance cannot move past {@code EOF} peek will always be in bounds.
+     */
+    private static Character peek(State s) {
+        if (s.current.offset >= s.src.data().length) {
+            return s.src.data()[s.src.data().length - 1];
+        }
+        return s.src.data()[s.current.offset];
+    }
+
+    /** Peeks the character after the one that the state is sitting on. */
+    private static Maybe<Character> peekPeek(State s) {
+        if (s.current.offset >= s.src.data().length - 1) {
+            return Maybe.none();
+        } else {
+            return Maybe.of(s.src.data()[s.current.offset + 1]);
+        }
+    }
+
+    /** Moves current position past all whitespace characters. */
+    private static void whitespace(State s) {
+        while (!eof(s)) {
+            if (!Character.isWhitespace(peek(s))) {
+                return;
+            }
+            advance(s);
+        }
+    }
+
+    private static boolean eof(State s) {
+        return s.current.offset >= s.src.data().length;
+    }
+
+    /**
+     * Consumes the text between {@code s.start} and {@code s.offset} to produce
+     * a token. Afterward {@code s.start} is reset to the next position after
+     * the previous token.
+     */
+    private static void addToken(TokenKind kind, State s) {
+        var b = new SourcePosition(s.src, s.start.line + 1, (short) (s.start.column + 1));
+        var e = new SourcePosition(s.src, s.end.line + 1, (short) (s.end.column + 1));
+        s.tokens.add(new Token(kind, s.src, s.start.offset, s.current.offset, b, e));
+        s.start = new Position(s.current.line, s.current.column, s.current.offset);
+    }
+
+    /**
+     * A helper function producing an {@link org.rsrg.proto.ast.SourceLocation}
+     * starting at {@code s.start}.
+     */
+    private static SourceLocation sourceLocationAtStart(State s) {
+        return sourceLocationAtStart(1, s);
+    }
+
+    private static SourceLocation sourceLocationAtStart(int length, State s) {
+
+        final int line = s.start.line + 1;
+        final int column = s.start.column + 1;
+        var sp1 = new SourcePosition(s.src, line, (short) column);
+        var sp2 = new SourcePosition(s.src, line, (short) (column + length));
+        return new SourceLocation(true, sp1, sp2);
+    }
+
+    /**
+     * A helper function for producing an {@link SourceLocation} at
+     * {@code s.current}.
+     */
+    private static SourceLocation sourceLocationAtCurrent(int length, State s) {
+        // state is zero-indexed while SourceLocation is one-indexed
+        var line = s.current.line + 1;
+        var col = s.current.column + 1;
+        var sp1 = new SourcePosition(s.src, line, (short) col);
+        var sp2 = new SourcePosition(s.src, line, (short) (col + length));
+        return new SourceLocation(true, sp1, sp2);
+    }
+
+    private static SourceLocation sourceLocationAtCurrent(State s) {
+        return sourceLocationAtCurrent(1, s);
+    }
+
+    private static TokenKind scanToken(State s) {
+        final Character c = advance(s);
+        // beware that order here affects both behavior and perf.; so if order
+        // needs to change, run tests and benchmarks
+
+        return switch (c) {
+            case '(' -> TokenKind.ParenL.ParenL;
+            case ')' -> TokenKind.ParenR.ParenR;
+            case '{' -> TokenKind.CurlyL.CurlyL;
+            case '}' -> TokenKind.CurlyR.CurlyR;
+            case ';' -> TokenKind.Semi.Semi;
+            case ',' -> TokenKind.Comma.Comma;
+            case Character _ when isMatch(".{", s) -> TokenKind.DotCurlyL.DotCurlyL;
+            case '.' -> TokenKind.Dot.Dot;
+            case Character _ when isMatch("//", s) -> acceptLineComment(s);
+            case Character _ when isMatch("???", s) -> TokenKind.HoleAnonymous.HoleAnon;
+            case Character _ when isMatch(":", s) -> TokenKind.Colon.Colon;
+            case Character _ when isMatch("=", s) -> TokenKind.Equal.Equal;
+            case Character _ when isMatch("::", s) -> TokenKind.ColonColon.ColonColon;
+            case Character _ when isKeyword("def", s) -> TokenKind.KeywordDef.KeywordDef;
+            case Character _ when isKeyword("enum", s) -> TokenKind.KeywordEnum.KeywordEnum;
+            case Character _ when isKeyword("false", s) -> TokenKind.KeywordFalse.KeywordFalse;
+            case Character _ when isKeyword("true", s) -> TokenKind.KeywordTrue.KeywordTrue;
+            case '_' -> {
+                var p = peek(s);
+                if (Character.isLetterOrDigit(p)) {
+                    yield acceptName(s);
+                } // else if isMathNameChar(p) ... else if isUserOp(p).isDefined else
+                else {
+                    yield TokenKind.Underscore.Underscore;
+                }
+            }
+            case Character ch when Character.isLetter(ch) -> acceptName(s);
+            case Character ch when isDigit(ch) -> acceptNumber(s);
+            default -> new Err(new LexerError.UnexpectedChar(String.valueOf(c), sourceLocationAtStart(s)));
+        };
+    }
+
+    /**
+     * Checks whether the following substring matches a keyword. Note that
+     * comparison includes current.
+     * <p>
+     * Also note that this will advance the current position past the keyword
+     * if there is a match.
+     */
+    private static boolean isMatch(String keyword, State s) {
+        // check if the keyword can appear before eof
+        if (s.current.offset + keyword.length() - 1 > s.src.data().length) {
+            return false;
+        }
+
+        // check if the next n characters in source matches those of the keyword
+        // one at a time.
+        var start = s.current.offset - 1;
+        var matches = true;
+        var offset = 0;
+        while (matches && offset < keyword.length()) {
+            if (s.src.data()[start + offset] != keyword.charAt(offset)) {
+                matches = false;
+            } else {
+                offset += 1;
+            }
+        }
+
+        if (matches) {
+            for (int i = 1; i < keyword.length(); i++) {
+                advance(s);
+            }
+        }
+        return matches;
+    }
+
+    /**
+     * Checks whether the following substring matches a keyword. Note that the
+     * comparison includes current. Also note that this will advance the current
+     * position past the keyword if there is a match.
+     */
+    private static boolean isKeyword(String keyword, State s) {
+        return isSeparated(keyword, s) && isMatch(keyword, s);
+    }
+
+    /**
+     * Checks that the potential keyword is sufficiently separated, taking care
+     * not to go out-of-bounds. A keyword is separated if it is surrounded by
+     * anything <em>but</em> a character, a digit, a dot, or underscore.
+     * <p>
+     * Note that <em>comparison includes current</em>.
+     */
+    private static boolean isSeparated(String keyword, boolean allowDot, State s) {
+        Predicate<Character> isSep =
+                c -> !(Character.isLetter(c) || Character.isDigit(c) || c == '_' || !allowDot && c == '.');
+        var leftIndex = s.current.offset - 2;
+        var rightIndex = s.current.offset + keyword.length() - 1;
+        var isSeparatedLeft = leftIndex < 0 || isSep.test(s.src.data()[leftIndex]);
+        var isSeparatedRight = rightIndex > s.src.data().length - 1 || isSep.test(s.src.data()[rightIndex]);
+        return isSeparatedLeft && isSeparatedRight;
+    }
+
+    private static boolean isSeparated(String keyword, State s) {
+        return isSeparated(keyword, false, s);
+    }
+
+    /**
+     * Check that the potential operator is sufficiently separated, taking care
+     * not to go out-of-bounds. An operator is separated if it is surrounded
+     * by anything but another user operator character. Note that the comparison
+     * includes current.
+     */
+    private static boolean isSeparatedOperator(String keyword, State s) {
+        var leftIndex = s.current.offset - 2;
+        var rightIndex = s.current.offset + keyword.length() - 1;
+        var isSeparatedLeft = leftIndex < 0;// || isUserOp(..) not needed (we don't do user op syms yet)
+        var isSeparatedRight = rightIndex > s.src.data().length - 1;
+        return isSeparatedLeft && isSeparatedRight;
+    }
+
+    // accept methods
+
+    /** Moves current position past a number literal. */
+    private static TokenKind acceptNumber(State s) {
+        Maybe<TokenKind> error = Maybe.none();
+
+        while (!eof(s)) {
+            switch (peek(s)) {
+                case Character c when Character.isDigit(c) -> advance(s);
+                // '_' that is not in tail-position
+                case Character c when c == '_' && peekPeek(s).exists(Character::isDigit) -> advance(s);
+                // sequence of underscores
+                case Character c when c == '_' && peekPeek(s).contains('_') -> {
+                    advance(s);
+                    advance(s);
+                    while (!eof(s) && peek(s) == '_') {
+                        advance(s);
+                    }
+                    error = Maybe.of(new Err(new LexerError.DoubleUnderscoreInNumber(sourceLocationAtStart(s))));
+                }
+                // if this is reached, an explicit number type might occur next
+                default -> {
+                    return switch (advance(s)) {
+                        case '_' -> new Err(new LexerError.TrailingUnderscoreInNumber(sourceLocationAtCurrent(s)));
+                        case Character _ when isMatch("i32", s) -> error.getOrElse(TokenKind.LiteralInt32.LiteralInt32);
+                        default -> {
+                            retreat(s);
+                            yield error.getOrElse(TokenKind.LiteralInt32.LiteralInt32);
+                        }
+                    };
+                }
+            }
+        }
+        // the very last char of the file was a digit, so return the appropriate
+        // token
+        return error.getOrElse(TokenKind.LiteralInt32.LiteralInt32);
+    }
+
+    private static TokenKind acceptName(State s) {
+        var kind = TokenKind.Name.Name;
+        while (!eof(s)) {
+            var p = peek(s);
+            if (!Character.isLetter(p) && !Character.isDigit(p) && p != '_') {
+                return kind;
+            }
+            advance(s);
+        }
+        return kind;
+    }
+
+    /** Moves current position past a line-comment. */
+    private static TokenKind acceptLineComment(State s) {
+        while (!eof(s)) {
+            if (peek(s) == '\n') {
+                return TokenKind.CommentLine.CommentLine;
+            } else {
+                advance(s);
+            }
+        }
+        return TokenKind.CommentLine.CommentLine;
+    }
+}
