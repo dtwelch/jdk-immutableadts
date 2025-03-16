@@ -26,4 +26,24 @@ public sealed interface AlgebraicLst<A> {
     static <T> AlgebraicLst<T> cons(T item, AlgebraicLst<T> next) {
         return new AlgebraicLst.NonEmpty<>(item, next);
     }
+
+    default boolean _null() {
+        return this instanceof AlgebraicLst.Empty<A>;
+    }
+
+    default A head() {
+        return switch (this) {
+            case NonEmpty(var head, _) -> head;
+            default -> throw new IllegalArgumentException(
+                    "called head on empty list");
+        };
+    }
+
+    default AlgebraicLst<A> tail() {
+        return switch (this) {
+            case NonEmpty(_, var xs) -> xs;
+            default -> throw new IllegalArgumentException(
+                    "called tail on empty list");
+        };
+    }
 }
