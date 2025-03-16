@@ -2,9 +2,12 @@ package org.rsrg.immutableadts;
 
 import org.rsrg.immutableadts.util.Pair;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class VList<A> implements Iterable<A> {
 
@@ -92,17 +95,49 @@ public final class VList<A> implements Iterable<A> {
         return new VList<>(reversed, size);
     }
 
+    /**
+     * O(n) - folds the list into a single value of type {@code B} from
+     * left to right according to function {@code f} (a -> b -> c) -- which
+     * carries an accumulator (stack safe)
+     */
+    public <B> B foldLeft(B initial, BiFunction<B, A, B> f) {
+        B acc = initial;
+        var current = lst;
+        while (!current._null()) {
+            acc = f.apply(acc, current.head());
+            current = current.tail();
+        }
+        return acc;
+    }
+
+    public <B> B foldRight(B initial, BiFunction<A, B, B> f) {
+        var stack = new ArrayDeque<A>();
+        var current = lst;
+        while (!current._null()) {
+            stack.push(current.head());
+            current = current.tail();
+        }
+        B acc = initial;
+        while (!stack.isEmpty()) {
+            acc = f.apply(stack.pop(), acc);
+        }
+        return acc;
+    }
+
+    public <B> VList<B> map(Function<A, B> f) {
+        return new VList<>(foldRight(AlgebraicLst.empty(),
+                (x, acc) -> AlgebraicLst.cons(f.apply(x), acc)), size);
+    }
+
     @Override public Iterator<A> iterator() {
         return new Iterator<>() {
             private AlgebraicLst<A> cur = lst;
 
-            @Override
-            public boolean hasNext() {
+            @Override public boolean hasNext() {
                 return !cur._null();
             }
 
-            @Override
-            public A next() {
+            @Override public A next() {
                 if (cur._null()) {
                     throw new NoSuchElementException();
                 }

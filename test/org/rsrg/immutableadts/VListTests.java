@@ -84,4 +84,35 @@ public final class VListTests {
         var expectedSize = 2000;
         Assertions.assertEquals(expectedSize, appended.size());
     }
+
+    @Test void foldLeftShouldAccumulateCorrectly() {
+        var list = VList.of(1, 2, 3, 4);
+        int sum = list.foldLeft(0, Integer::sum);
+        Assertions.assertEquals(10, sum);
+    }
+
+    @Test void foldRightShouldAccumulateCorrectly() {
+        var list = VList.of(1, 2, 3, 4);
+        int sum = list.foldRight(0, Integer::sum);
+        Assertions.assertEquals(10, sum);
+    }
+
+    @Test void foldLeftShouldPreserveOrder() {
+        var list = VList.of("a", "b", "c");
+        String concat = list.foldLeft("", (acc, x) -> acc + x);
+        Assertions.assertEquals("abc", concat);
+    }
+
+    @Test void foldRightShouldPreserveOrder() {
+        var list = VList.of("a", "b", "c");
+        String concat = list.foldRight("", (x, acc) -> x + acc);
+        Assertions.assertEquals("abc", concat);
+    }
+
+    @Test void mapShouldApplyFunctionCorrectly() {
+        var list = VList.of(1, 2, 3);
+        var doubled = list.map(x -> x * 2);
+        var expected = VList.of(2, 4, 6);
+        Assertions.assertEquals(expected, doubled);
+    }
 }
