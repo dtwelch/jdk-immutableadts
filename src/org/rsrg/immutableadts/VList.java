@@ -16,6 +16,10 @@ public final class VList<A> implements Iterable<A> {
         this.size = size;
     }
 
+    public static <T> VList<T> empty() {
+        return new VList<>(AlgebraicLst.empty(), 0);
+    }
+
     public static <T> VList<T> of(T... ts) {
         var res = AlgebraicLst.<T>empty();
         for (int i = ts.length - 1; i >= 0; i--) {
@@ -24,8 +28,18 @@ public final class VList<A> implements Iterable<A> {
         return new VList<>(res, ts.length);
     }
 
-    public static <T> VList<T> empty() {
-        return new VList<>(AlgebraicLst.empty(), 0);
+    public static <T> VList<T> ofAll(Iterable<T> items) {
+        var buffer = new ArrayList<T>();
+        for (var item : items) {
+            buffer.add(item);
+        }
+
+        // for efficient consing
+        var lst = AlgebraicLst.<T>empty();
+        for (int i = buffer.size() - 1; i >= 0; i--) {
+            lst = AlgebraicLst.cons(buffer.get(i), lst);
+        }
+        return new VList<>(lst, buffer.size());
     }
 
     /**

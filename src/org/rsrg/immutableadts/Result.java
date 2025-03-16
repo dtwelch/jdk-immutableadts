@@ -82,7 +82,7 @@ public sealed interface Result<T, E> {
      * into a list. Returns the first error value encountered, if any.
      */
     static <T, E> Result<VList<T>, E> sequence(VList<Result<T, E>> xs) {
-        java.util.List<T> result = new ArrayList<>();
+        var result = new ArrayList<T>();
         for (var res : xs.reverse()) {
             switch (res) {
                 case Ok(var r) -> result.add(r);
@@ -90,15 +90,15 @@ public sealed interface Result<T, E> {
                 }
             }
         }
-        return ok(List.ofAll(result));
+        return ok(VList.ofAll(result));
     }
 
     /**
      * Applies {@code f} to each element in the list. Fails at the first error
      * found, or returns the new list.
      */
-    static <T, S, E> Result<List<S>, E> traverse(Iterable<T> xs, Function<T, Result<S, E>> f) {
-        java.util.List<S> result = new ArrayList<>();
+    static <T, S, E> Result<VList<S>, E> traverse(Iterable<T> xs, Function<T, Result<S, E>> f) {
+        var result = new ArrayList<S>();
         for (T x : xs) {
             switch (f.apply(x)) {
                 // case 1: ok, add to the list
@@ -109,7 +109,7 @@ public sealed interface Result<T, E> {
                 }
             }
         }
-        return ok(List.ofAll(result));
+        return ok(VList.ofAll(result));
     }
 
     // actual implementations:
