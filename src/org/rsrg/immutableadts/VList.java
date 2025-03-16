@@ -148,6 +148,25 @@ public final class VList<A> implements Iterable<A> {
         };
     }
 
+
+    public String mkString(String delim)  {
+        return mkString("", delim, "");
+    }
+
+    public String mkString(String left, String delim, String right) {
+        var sb = new StringBuilder(left);
+        var first = true;
+        for (var node : this) {
+           if (first) {
+               sb.append(node);
+               first = false;
+           } else {
+               sb.append(delim).append(node);
+           }
+        }
+        return sb.append(right).toString();
+    }
+
     @Override public boolean equals(Object o) {
         return switch (o) {
             case VList<?> other -> this.size == other.size && this.lst.equals(other.lst);

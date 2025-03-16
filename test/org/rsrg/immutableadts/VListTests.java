@@ -115,4 +115,40 @@ public final class VListTests {
         var expected = VList.of(2, 4, 6);
         Assertions.assertEquals(expected, doubled);
     }
+
+    @Test void mkStringSingleElement() {
+        var list = VList.of(1);
+        var result = list.mkString("[", ", ", "]");
+        Assertions.assertEquals("[1]", result);
+    }
+
+    @Test void mkStringTwoElements() {
+        var list = VList.of(1, 2);
+        var result = list.mkString("[", ", ", "]");
+        Assertions.assertEquals("[1, 2]", result);
+    }
+
+    @Test void mkStringThreeElements() {
+        var list = VList.of(1, 2, 3);
+        var result = list.mkString("[", ", ", "]");
+        Assertions.assertEquals("[1, 2, 3]", result);
+    }
+
+    @Test void mkStringEmptyList() {
+        var list = VList.empty();
+        var result = list.mkString("[", ", ", "]");
+        Assertions.assertEquals("[]", result);
+    }
+
+    @Test void mkStringCustomDelimiters() {
+        var list = VList.of("a", "b", "c");
+        var result = list.mkString("<", "|", ">");
+        Assertions.assertEquals("<a|b|c>", result);
+    }
+
+    @Test void mkStringOneElementCustom() {
+        var list = VList.of(42);
+        var result = list.mkString("{", " - ", "}");
+        Assertions.assertEquals("{42}", result);
+    }
 }
