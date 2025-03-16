@@ -1,11 +1,11 @@
-package org.rsrg.mixfix.immutableadts;
+package org.rsrg.immutableadts;
 
-import org.rsrg.mixfix.util.Maybe;
-import org.rsrg.mixfix.util.Pair;
+import org.rsrg.immutableadts.util.Maybe;
+import org.rsrg.immutableadts.util.Pair;
 
 import java.util.Comparator;
 
-import static org.rsrg.mixfix.util.Maybe.*;
+import static org.rsrg.immutableadts.util.Maybe.*;
 
 public final class VTreeMap<K, V> {
 

@@ -1,6 +1,6 @@
-package org.rsrg.mixfix.immutableadts;
+package org.rsrg.immutableadts;
 
-import org.rsrg.mixfix.util.Pair;
+import org.rsrg.immutableadts.util.Pair;
 
 public final class VList<A> {
 

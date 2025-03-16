@@ -1,4 +1,4 @@
-package org.rsrg.mixfix.immutableadts;
+package org.rsrg.immutableadts;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,4 @@
-package org.rsrg.mixfix.immutableadts;
+package org.rsrg.immutableadts;
 
 /**
  * A sum type used to represent a singly linked list.

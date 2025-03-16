@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.rsrg</groupId>
-    <artifactId>mixfix-java</artifactId>
+    <artifactId>jdk-immutableadts</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>mixfix-java</name>
+    <name>jdk-immutableadts</name>
 
     <dependencies>
         <dependency>
@@ -37,7 +37,7 @@
     </properties>
 
     <build>
-        <finalName>mixfix-java</finalName>
+        <finalName>immutableadts</finalName>
 
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>test</testSourceDirectory>

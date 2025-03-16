@@ -1,4 +1,4 @@
-package org.rsrg.mixfix.immutableadts;
+package org.rsrg.immutableadts;
 
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;

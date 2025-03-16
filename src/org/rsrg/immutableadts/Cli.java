@@ -1,4 +1,4 @@
-package org.rsrg.mixfix;
+package org.rsrg.immutableadts;
 
 public final class Cli {
 

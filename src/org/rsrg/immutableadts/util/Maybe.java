@@ -1,4 +1,4 @@
-package org.rsrg.mixfix.util;
+package org.rsrg.immutableadts.util;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;

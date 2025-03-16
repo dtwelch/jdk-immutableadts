@@ -1,9 +1,8 @@
-package org.rsrg.mixfix.immutableadts;
+package org.rsrg.immutableadts;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.rsrg.mixfix.util.Maybe;
-import org.rsrg.mixfix.util.Pair;
+import org.rsrg.immutableadts.util.Maybe;
 
 public final class VTreeMapTests {
 

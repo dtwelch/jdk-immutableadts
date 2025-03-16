@@ -1,4 +1,4 @@
-package org.rsrg.mixfix.immutableadts;
+package org.rsrg.immutableadts;
 
 import java.util.Comparator;
 import java.util.Iterator;
