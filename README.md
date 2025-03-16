@@ -9,7 +9,7 @@ immutable structures:
   tree described in [this paper](https://arxiv.org/abs/1412.4882)
   by Prabhakar Ragde; this development also incorporates some bug
   fixes to the algorithms listed in the paper
-    * courtesy of [this](https://github.com/m-fleury/isabelle-emacs/blob/Isabelle2024-vsce/src/HOL/Data_Structures/AA_Set.thy)
+    * the bugfixes and `adjust` fn specifically were from [this](https://github.com/m-fleury/isabelle-emacs/blob/Isabelle2024-vsce/src/HOL/Data_Structures/AA_Set.thy)
       formally verified Isabelle development
 
 * **list adt** `VList` - a fairly standard immutable polymorphic list type modeled algebraically using
