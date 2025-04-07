@@ -1,13 +1,12 @@
 package org.rsrg.immutableadts;
 
-import org.rsrg.immutableadts.util.Pair;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public final class VList<A> implements Iterable<A> {
 
@@ -23,7 +22,7 @@ public final class VList<A> implements Iterable<A> {
         return new VList<>(AlgebraicLst.empty(), 0);
     }
 
-    public static <T> VList<T> of(T... ts) {
+    @SafeVarargs public static <T> VList<T> of(T... ts) {
         var res = AlgebraicLst.<T>empty();
         for (int i = ts.length - 1; i >= 0; i--) {
             res = AlgebraicLst.cons(ts[i], res);
@@ -80,6 +79,21 @@ public final class VList<A> implements Iterable<A> {
         return size;
     }
 
+    /** O(1) - returns true only if this list is empty; false otherwise. */
+    public boolean _null() { return size == 0; }
+
+    /**
+     * O(1) - retrieves the head of this list;
+     * throws an {@link IllegalStateException} if called on an empty list.
+     */
+    public A head() {
+        return switch (lst) {
+            case AlgebraicLst.NonEmpty(var x, _) -> x;
+            case AlgebraicLst.Empty<A> _ ->
+                    throw new IllegalStateException("head called on empty list");
+        };
+    }
+
     /** O(n) - returns a new VList with the elements in reverse order. */
     public VList<A> reverse() {
         if (size <= 1) {
@@ -108,6 +122,15 @@ public final class VList<A> implements Iterable<A> {
             current = current.tail();
         }
         return acc;
+    }
+
+    public boolean anyMatch(Predicate<? super A> predicate) {
+        for (A element : this) {
+            if (predicate.test(element)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public <B> B foldRight(B initial, BiFunction<A, B, B> f) {
