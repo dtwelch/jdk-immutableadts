@@ -1,6 +1,8 @@
 .idea/
 target/
 out/
+*.project
+*.classpath
 *.jqwik-database
 *.iml
 *.DS_Store
