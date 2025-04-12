@@ -1,6 +1,7 @@
 .idea/
 target/
 out/
+.settings/
 *.project
 *.classpath
 *.jqwik-database
