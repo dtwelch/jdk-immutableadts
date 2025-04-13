@@ -9,6 +9,8 @@ public final class VFingerTree {
     private VFingerTree() {}
     // todo (maybe)
     //      https://andrew.gibiansky.com/blog/haskell/finger-trees/
+    // hmmm: this seems like a better fit for an implementation of an immutable Vector type:
+    // https://infoscience.epfl.ch/server/api/core/bitstreams/e5d662ea-1e8d-4dda-b917-8cbb8bb40bf9/content
 
     // nonempty 2-3 trees with all items stored within the leafs
     // + some cached annotation of type A
@@ -147,6 +149,19 @@ public final class VFingerTree {
                     nodeToList(a).append(nodeToList(b)).append(nodeToList(c));
             case Digit.Four(var a, var b, var c, var d) ->
                     nodeToList(a).append(nodeToList(b)).append(nodeToList(c)).append(nodeToList(d));
+        };
+    }
+
+    /**
+     * O(n) avg, O(n^2) worst; returns a list representation of a finger tree.
+     * Worst case requires it seems some pretty pathological insertion patterns...
+     */
+    static <E, A> VList<Pair<E, A>> toList(FingerTreeStruc<E, A> tree) {
+        return switch (tree) {
+            case Empty<E, A> _ -> VList.empty();
+            case Single(var a) -> nodeToList(a);
+            // NB pf=prefix digit; sf=suffix digit
+            case Deep(_, var pr, var m, var sf) -> digitToList(pr).append(toList(m)).append(digitToList(sf));
         };
     }
 
