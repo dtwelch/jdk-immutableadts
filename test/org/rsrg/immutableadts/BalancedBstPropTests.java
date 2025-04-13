@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.*;
 
-public class BalancedBstPropTests {
+public final class BalancedBstPropTests {
 
     // property: construction yields a balanced tree
     //              (satisfying invariants AA1-AA4)

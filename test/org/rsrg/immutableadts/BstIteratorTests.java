@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.NoSuchElementException;
 
 /** Tests for the (in order) iterator for {@link BalancedBst} provides. */
-public class BstIteratorTests {
+public final class BstIteratorTests {
 
     @Test public void testEmptyTreeIterator() {
         var emptyTree = BalancedBst.empty(Integer::compareTo);
