@@ -27,4 +27,12 @@ public sealed interface VChain<A> {
     }
 
     record Link<A>(VChain<A> l, VChain<A> r) implements VChain<A> {}
+
+    // I think the original scala's choice of Seq inside a proxy
+    // doesn't really effect the larger big o characteristics of this
+    // rope like data structure (will still support O(1) concatenations
+    // list1.errors().concat(list2.errors())
+    // TLDR: no need to implement a vector or something using the finger
+    // tree started... (just the list in the leafs)
+    record Proxy<A>(VList<A> xs) implements VChain<A> {}
 }
