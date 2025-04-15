@@ -1,5 +1,7 @@
 package org.rsrg.immutableadts;
 
+import org.rsrg.immutableadts.util.Maybe;
+
 /**
  * A linear data structure that allows fast concatenation. Ported/adapted from:
  * the flix compiler:
@@ -57,5 +59,21 @@ public sealed interface VChain<A> {
 
     static <A> VChain<A> proxy(VList<A> list) {
         return new VChain.Proxy<>(list);
+    }
+
+    default public Maybe<A> head() {
+        var current = this;
+        while (true) {
+            switch (current) {
+                case Empty<A> _ -> {
+                    return Maybe.none();
+                }
+                case Link(Empty<A> _, var r) -> current = r;
+                case Link(var l, _)          -> current = l;
+                case Proxy(var xs)           -> {
+                    return xs.head()
+                }
+            }
+        }
     }
 }

@@ -81,8 +81,6 @@ public final class VFingerTree {
                     gmft(middleTree, m)), gmd(suffixDigit, m)),
                     prefixDigit, middleTree, suffixDigit);
         }
-
-
     }
 
     interface Measurable<E1, A1> {
@@ -94,12 +92,7 @@ public final class VFingerTree {
     }
 
     // gmn = get measure (of) node
-    // this method just returns the cached measure of the node
-    // in this (hinze paterson) finger tree -- m is not actually
-    // needed (as we don't have to recalc);
-    //
-    // so m is here for consistency with other functions that
-    // do rely on the ability to recompute a node's measure
+    // returns the cached measure of the node in a finger tree 
     static <E, A> A gmn(Node<E, A> n) {
         return switch (n) {
             case Node.Tip(var _, var a) -> a;

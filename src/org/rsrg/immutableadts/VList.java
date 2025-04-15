@@ -1,5 +1,7 @@
 package org.rsrg.immutableadts;
 
+import org.rsrg.immutableadts.util.Maybe;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -83,7 +85,7 @@ public final class VList<A> implements Iterable<A> {
     public boolean _null() { return size == 0; }
 
     /**
-     * O(1) - retrieves the head of this list;
+     * O(1) - returns the head of this list;
      * throws an {@link IllegalStateException} if called on an empty list.
      */
     public A head() {
@@ -91,6 +93,17 @@ public final class VList<A> implements Iterable<A> {
             case AlgebraicLst.NonEmpty(var x, _) -> x;
             case AlgebraicLst.Empty<A> _ ->
                     throw new IllegalStateException("head called on empty list");
+        };
+    }
+
+    /**
+     * O(1) - returns the head wrapped in a {@link Maybe.Some} if it exists;
+     * {@link Maybe.None} otherwise.
+     */
+    public Maybe<A> headMaybe() {
+        return switch (lst) {
+            case AlgebraicLst.NonEmpty(var x, _) -> Maybe.of(x);
+            case AlgebraicLst.Empty<A> _         -> Maybe.none();
         };
     }
 
