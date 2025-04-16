@@ -2,6 +2,10 @@ package org.rsrg.immutableadts;
 
 import org.rsrg.immutableadts.util.Maybe;
 
+import java.util.ArrayDeque;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 /**
  * A linear data structure that allows fast concatenation. Ported/adapted from:
  * the flix compiler:
@@ -9,7 +13,7 @@ import org.rsrg.immutableadts.util.Maybe;
  *     here</a>
  * Unit tests (will be) moved as well.
  */
-public sealed interface VChain<A> {
+public sealed interface VChain<A> extends Iterable<A> {
 
     default VChain<A> concat(VChain<A> o) {
         if (this == Empty.EmptyInst) {
@@ -61,7 +65,7 @@ public sealed interface VChain<A> {
         return new VChain.Proxy<>(list);
     }
 
-    default public Maybe<A> head() {
+    default Maybe<A> head() {
         var current = this;
         while (true) {
             switch (current) {
@@ -71,9 +75,63 @@ public sealed interface VChain<A> {
                 case Link(Empty<A> _, var r) -> current = r;
                 case Link(var l, _)          -> current = l;
                 case Proxy(var xs)           -> {
-                    return xs.head()
+                    return xs.headMaybe();
                 }
             }
+        }
+    }
+
+    default int length() {
+        int len = 0;
+        var stack = new ArrayDeque<VChain<A>>();
+        stack.push(this);
+
+        while (!stack.isEmpty()) {
+            var current = stack.pop();
+            switch (current) {
+                case Empty<A> _          -> {}
+                case Link(var l, var r)  -> {
+                    stack.push(l);
+                    stack.push(r);
+                }
+                case Proxy(var xs) -> len += xs.size();
+            }
+        }
+        return len;
+    }
+
+    /**
+     * Returns true only if an element in {@code this} satisfies
+     * the predicate {@code f}.
+     */
+    default boolean exists(Function<A, Boolean> f) {
+        return switch (this) {
+            case Empty<A> _         -> false;
+            case Link(var l, var r) -> l.exists(f) || r.exists(f);
+            case Proxy(var xs)      -> xs.anyMatch(f::apply);
+        };
+    }
+
+    /**
+     * Returns a new chain with {@code f} applied to every element
+     * in {@code this}.
+     */
+    default <B> VChain<B> map(Function<A, B> f) {
+        return switch (this) {
+            case Empty<A> _         -> VChain.empty();
+            case Link(var l, var r) -> VChain.link(l.map(f), r.map(f));
+            case Proxy(var xs)      -> VChain.proxy(xs.map(f));
+        };
+    }
+
+    @Override default void forEach(Consumer<? super A> f) {
+        switch (this) {
+            case Empty<A> _ -> {}
+            case Link<A> c -> {
+                c.l.forEach(f);
+                c.r.forEach(f);
+            }
+            case Proxy<A> c -> c.xs.forEach(f);
         }
     }
 }
