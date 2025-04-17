@@ -6,7 +6,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -30,8 +29,10 @@ public sealed interface VChain<A> extends Iterable<A> {
 
     final class Empty<A> implements VChain<A> {
         public static final VChain<?> EmptyInst = new Empty<>();
+        private Empty() {}
 
-        private Empty() {
+        @Override public String toString() {
+            return "Chain[]";
         }
     }
 
@@ -47,7 +48,18 @@ public sealed interface VChain<A> extends Iterable<A> {
         };
     }
 
-    record Link<A>(VChain<A> l, VChain<A> r) implements VChain<A> {}
+    record Link<A>(VChain<A> l, VChain<A> r) implements VChain<A> {
+        @Override public boolean equals(Object o) {
+            return switch (o) {
+                case VChain<?> other -> this.toList().equals(other.toList());
+                default -> false;
+            };
+        }
+
+        @Override public int hashCode() {
+            return this.toList().hashCode();
+        }
+    }
 
     static <A> VChain<A> link(VChain<A> l, VChain<A> r) {
         return new VChain.Link<>(l, r);
@@ -58,7 +70,18 @@ public sealed interface VChain<A> extends Iterable<A> {
     // list1.errors().concat(list2.errors())
     // TLDR: no need to implement a vector or something using the finger
     // tree started... (just use the immutable list in the leafs)
-    record Proxy<A>(VList<A> xs) implements VChain<A> {}
+    record Proxy<A>(VList<A> xs) implements VChain<A> {
+        @Override public boolean equals(Object o) {
+            return switch (o) {
+                case VChain<?> other -> this.toList().equals(other.toList());
+                default -> false;
+            };
+        }
+
+        @Override public int hashCode() {
+            return xs.hashCode();
+        }
+    }
 
     static <A> VChain<A> proxy(A x) {
         return proxy(VList.of(x));
@@ -127,6 +150,28 @@ public sealed interface VChain<A> extends Iterable<A> {
         };
     }
 
+    default VList<A> toList() {
+        var buf = new java.util.ArrayList<A>(length());
+        for (A x : this) {
+            buf.add(x);
+        }
+        return VList.ofAll(buf);
+    }
+
+    default String mkString(String sep) {
+        var sb      = new StringBuilder();
+        var first   = true;
+        for (var x : this) {
+            if (first) {
+                sb.append(x);
+                first = false;
+            } else {
+                sb.append(sep).append(x);
+            }
+        }
+        return sb.toString();
+    }
+
     @Override default Iterator<A> iterator() {
         return new ChainIter<>(this);
     }
@@ -170,7 +215,7 @@ public sealed interface VChain<A> extends Iterable<A> {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            // by contract: proxyIt is non-null and has a next element
+            // by contract: proxyIt is not null and has a next element
             return proxyIt.next();
         }
     }
