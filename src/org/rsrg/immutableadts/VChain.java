@@ -3,6 +3,9 @@ package org.rsrg.immutableadts;
 import org.rsrg.immutableadts.util.Maybe;
 
 import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -124,14 +127,51 @@ public sealed interface VChain<A> extends Iterable<A> {
         };
     }
 
-    @Override default void forEach(Consumer<? super A> f) {
-        switch (this) {
-            case Empty<A> _ -> {}
-            case Link<A> c -> {
-                c.l.forEach(f);
-                c.r.forEach(f);
+    @Override default Iterator<A> iterator() {
+        return new ChainIter<>(this);
+    }
+
+    final class ChainIter<A> implements Iterator<A> {
+        private final Deque<VChain<A>> stack = new ArrayDeque<>();
+        private Iterator<A> proxyIt = null;
+
+        public ChainIter(VChain<A> root) {
+            stack.push(root);
+        }
+
+        @Override public boolean hasNext() {
+            if (proxyIt != null && proxyIt.hasNext()) {
+                return true;
             }
-            case Proxy<A> c -> c.xs.forEach(f);
+            proxyIt = null;
+
+            while (!stack.isEmpty()) {
+                var cur = stack.pop();
+                switch (cur) {
+                    case Empty<A> _ -> { }
+                    case Link(var l, var r) -> {
+                        stack.push(r);
+                        stack.push(l);
+                    }
+                    case Proxy(var xs) -> {
+                        proxyIt = xs.iterator();
+                        if (proxyIt.hasNext()) {
+                            return true;
+                        } else {
+                            proxyIt = null;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        @Override public A next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            // by contract: proxyIt is non-null and has a next element
+            return proxyIt.next();
         }
     }
 }
