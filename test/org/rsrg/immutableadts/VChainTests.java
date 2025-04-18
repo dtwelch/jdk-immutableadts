@@ -73,13 +73,14 @@ public final class VChainTests {
         var c2 = VChain.of(1, 1, 3, 4, 5);
         Assertions.assertNotEquals(c1, c2);
     }
-/*
+
     @Test void testEq07() {
-        VChain<Integer> c1 = of(1).concat(of(3));
-        VChain<Integer> c2 = of(1, 2);
+        var c1 = VChain.of(1).concat(VChain.of(3));
+        var c2 = VChain.of(1, 2);
         Assertions.assertNotEquals(c1, c2);
     }
 
+/*
     @Test void testEq08() {
         var list = VList.of(       //
                 VChain.of(1), //
