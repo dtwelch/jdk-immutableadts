@@ -1,7 +1,5 @@
 package org.rsrg.immutableadts;
 
-import org.rsrg.immutableadts.util.Pair;
-
 import static org.rsrg.immutableadts.VFingerTree.FingerTreeStruc.*;
 
 public final class VFingerTree {

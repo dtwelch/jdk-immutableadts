@@ -1,7 +1,5 @@
 package org.rsrg.immutableadts;
 
-import org.rsrg.immutableadts.util.Maybe;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;

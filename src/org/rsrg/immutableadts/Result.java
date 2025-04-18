@@ -1,7 +1,5 @@
 package org.rsrg.immutableadts;
 
-import org.rsrg.immutableadts.util.Maybe;
-
 import java.util.ArrayList;
 import java.util.function.Function;
 

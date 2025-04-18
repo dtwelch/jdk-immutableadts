@@ -1,9 +1,5 @@
 package org.rsrg.immutableadts;
 
-import net.jqwik.api.*;
-import org.junit.jupiter.api.Assertions;
-import org.rsrg.immutableadts.util.Pair;
-
 public final class FingerTreePropertyTests {
 /*
     private static final VFingerTree.Measurable<Integer, Integer> SumMeasure =

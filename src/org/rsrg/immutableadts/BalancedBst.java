@@ -1,8 +1,5 @@
 package org.rsrg.immutableadts;
 
-import org.rsrg.immutableadts.util.Maybe;
-import org.rsrg.immutableadts.util.Pair;
-
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;

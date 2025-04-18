@@ -1,4 +1,4 @@
-package org.rsrg.immutableadts.util;
+package org.rsrg.immutableadts;
 
 public final class Utils {
 

@@ -1,11 +1,8 @@
 package org.rsrg.immutableadts;
 
-import org.rsrg.immutableadts.util.Maybe;
-import org.rsrg.immutableadts.util.Pair;
-
 import java.util.Comparator;
 
-import static org.rsrg.immutableadts.util.Maybe.*;
+import static org.rsrg.immutableadts.Maybe.*;
 
 public final class VTreeMap<K, V> {
 

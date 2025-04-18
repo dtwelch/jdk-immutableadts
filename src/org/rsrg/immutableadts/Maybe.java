@@ -1,4 +1,4 @@
-package org.rsrg.immutableadts.util;
+package org.rsrg.immutableadts;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;
