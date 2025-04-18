@@ -150,63 +150,42 @@ public final class VChainTests {
     }
 
     @Test void testMap01() {
-        Assertions.assertEquals(
-                VChain.<Boolean>empty(),
-                VChain.<Integer>empty().map(i -> i > 2)
-        );
+        Assertions.assertEquals(VChain.<Boolean>empty(), VChain.<Integer>empty().map(i -> i > 2));
     }
 
     @Test void testMap02() {
-        Assertions.assertEquals(
-                VChain.of(false),
-                VChain.of(1).map(i -> i > 2)
-        );
+        Assertions.assertEquals(VChain.of(false), VChain.of(1).map(i -> i > 2));
     }
 
     @Test void testMap03() {
-        Assertions.assertEquals(
-                VChain.of(true),
-                VChain.of(3).map(i -> i > 2)
-        );
+        Assertions.assertEquals(VChain.of(true), VChain.of(3).map(i -> i > 2));
     }
 
     @Test void testMap04() {
-        Assertions.assertEquals(
-                VChain.of(false, false),
-                VChain.of(1, 2).map(i -> i > 2)
-        );
+        Assertions.assertEquals(VChain.of(false, false), VChain.of(1, 2).map(i -> i > 2));
     }
-/*
+
     @Test void testMap05() {
-        Assertions.assertEquals(
-                of(false, true),
-                of(1, 8).map(i -> i > 2)
-        );
+        Assertions.assertEquals(VChain.of(false, true), VChain.of(1, 8).map(i -> i > 2));
     }
 
     @Test void testMap06() {
-        Assertions.assertEquals(
-                of(true, false),
-                of(8, 1).map(i -> i > 2)
-        );
+        Assertions.assertEquals(VChain.of(true, false), VChain.of(8, 1).map(i -> i > 2));
     }
 
     @Test void testMap07() {
-        Assertions.assertEquals(
-                of(true, true),
-                of(7, 8).map(i -> i > 2)
-        );
+        Assertions.assertEquals(VChain.of(true, true), VChain.of(7, 8).map(i -> i > 2));
     }
 
     @Test void testForeach01() {
-        final int[] r = { 21 };
+        final int[] r = {21};
         VChain.<Integer>empty().forEach(x -> r[0] = x);
         Assertions.assertEquals(21, r[0]);
     }
 
     @Test void testForeach02() {
-        final int[] r = { 21 };
-        of(1, 2, 3).forEach(x -> r[0] = x);
+        final int[] r = {21};
+        VChain.of(1, 2, 3).forEach(x -> r[0] = x);
         Assertions.assertEquals(3, r[0]);
     }
 
@@ -215,35 +194,35 @@ public final class VChainTests {
     }
 
     @Test void testExists02() {
-        Assertions.assertFalse(of(1).exists(i -> i > 3));
+        Assertions.assertFalse(VChain.of(1).exists(i -> i > 3));
     }
 
     @Test void testExists03() {
-        Assertions.assertTrue(of(5).exists(i -> i > 3));
+        Assertions.assertTrue(VChain.of(5).exists(i -> i > 3));
     }
 
     @Test void testExists04() {
-        Assertions.assertFalse(of(1, 2).exists(i -> i > 3));
+        Assertions.assertFalse(VChain.of(1, 2).exists(i -> i > 3));
     }
 
     @Test void testExists05() {
-        Assertions.assertTrue(of(1, 6).exists(i -> i > 3));
+        Assertions.assertTrue(VChain.of(1, 6).exists(i -> i > 3));
     }
 
     @Test void testExists06() {
-        Assertions.assertTrue(of(6, 1).exists(i -> i > 3));
+        Assertions.assertTrue(VChain.of(6, 1).exists(i -> i > 3));
     }
 
     @Test void testExists07() {
-        Assertions.assertTrue(of(16, 6).exists(i -> i > 3));
+        Assertions.assertTrue(VChain.of(16, 6).exists(i -> i > 3));
     }
 
     @Test void testExists08() {
-        Assertions.assertFalse(of(1, -9, 3).exists(i -> i > 3));
+        Assertions.assertFalse(VChain.of(1, -9, 3).exists(i -> i > 3));
     }
 
     @Test void testExists09() {
-        Assertions.assertTrue(of(1, 9, 3).exists(i -> i > 3));
+        Assertions.assertTrue(VChain.of(1, 9, 3).exists(i -> i > 3));
     }
 
     @Test void testMkString01() {
@@ -251,11 +230,11 @@ public final class VChainTests {
     }
 
     @Test void testMkString02() {
-        Assertions.assertEquals("1+2+3", of(1, 2, 3).mkString("+"));
+        Assertions.assertEquals("1+2+3", VChain.of(1, 2, 3).mkString("+"));
     }
 
     @Test void testMkString03() {
-        VChain<Integer> chain = of(1, 2, 3, 4, 5);
+        VChain<Integer> chain = VChain.of(1, 2, 3, 4, 5);
         Assertions.assertEquals("1-2-3-4-5", chain.mkString("-"));
     }
 
@@ -264,42 +243,39 @@ public final class VChainTests {
     }
 
     @Test void testToString02() {
-        Assertions.assertEquals(
-                "Chain[]",
-                VChain.from(List.<Integer>of()).toString()
-        );
+        Assertions.assertEquals("Chain[]", VChain.from(VList.empty()).toString());
     }
 
     @Test void testToString03() {
-        Assertions.assertEquals(
-                "Chain[1, 2, 3]",
-                of(1, 2, 3).toString()
-        );
+        Assertions.assertEquals("Chain[1, 2, 3]", VChain.of(1, 2, 3).toString());
     }
 
     @Test void testToString04() {
-        VChain<Integer> chain = List.of(of(1), of(2), of(3), of(4), of(5))
-                .stream().reduce(VChain.empty(), VChain::concat);
+        var chain = VList.of( //
+                VChain.of(1), //
+                VChain.of(2), //
+                VChain.of(3), //
+                VChain.of(4), //
+                VChain.of(5) //
+        ).foldLeft(VChain.<Integer>empty(), VChain::concat);
         Assertions.assertEquals("Chain[1, 2, 3, 4, 5]", chain.toString());
     }
 
     @Test void testToString05() {
-        VChain<Integer> chain = of(1)
-                .concat(of(2))
-                .concat(of(3))
-                .concat(of(4))
-                .concat(of(5));
+        var chain = VChain.of(1) //
+                .concat(VChain.of(2)) //
+                .concat(VChain.of(3)) //
+                .concat(VChain.of(4)) //
+                .concat(VChain.of(5)); //
         Assertions.assertEquals("Chain[1, 2, 3, 4, 5]", chain.toString());
     }
 
     @Test void testToString06() {
-        VChain<Integer> chain = VChain.<Integer>empty()
-                .concat(of(1))
-                .concat(VChain.from(List.<Integer>of()))
-                .concat(VChain.from(List.of(2, 3)))
-                .concat(VChain.from(List.of(4, 5)));
+        var chain = VChain.<Integer>empty() //
+                .concat(VChain.of(1)) //
+                .concat(VChain.from(VList.empty())) //
+                .concat(VChain.from(VList.of(2, 3))) //
+                .concat(VChain.from(VList.of(4, 5)));
         Assertions.assertEquals("Chain[1, 2, 3, 4, 5]", chain.toString());
     }
-
- */
 }
