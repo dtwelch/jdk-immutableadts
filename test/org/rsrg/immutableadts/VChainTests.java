@@ -80,7 +80,6 @@ public final class VChainTests {
         Assertions.assertNotEquals(c1, c2);
     }
 
-/*
     @Test void testEq08() {
         var list = VList.of(       //
                 VChain.of(1), //
@@ -149,7 +148,7 @@ public final class VChainTests {
     @Test void testLength04() {
         Assertions.assertEquals(3, VChain.of(1, 2, 3).length());
     }
-/*
+
     @Test void testMap01() {
         Assertions.assertEquals(
                 VChain.<Boolean>empty(),
@@ -159,25 +158,25 @@ public final class VChainTests {
 
     @Test void testMap02() {
         Assertions.assertEquals(
-                of(false),
-                of(1).map(i -> i > 2)
+                VChain.of(false),
+                VChain.of(1).map(i -> i > 2)
         );
     }
 
     @Test void testMap03() {
         Assertions.assertEquals(
-                of(true),
-                of(3).map(i -> i > 2)
+                VChain.of(true),
+                VChain.of(3).map(i -> i > 2)
         );
     }
 
     @Test void testMap04() {
         Assertions.assertEquals(
-                of(false, false),
-                of(1, 2).map(i -> i > 2)
+                VChain.of(false, false),
+                VChain.of(1, 2).map(i -> i > 2)
         );
     }
-
+/*
     @Test void testMap05() {
         Assertions.assertEquals(
                 of(false, true),
