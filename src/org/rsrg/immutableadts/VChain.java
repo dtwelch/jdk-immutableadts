@@ -12,7 +12,7 @@ import java.util.function.Function;
  * A linear data structure that allows fast concatenation. Ported/adapted from:
  * the flix compiler:
  * <a href="https://github.com/flix/flix/blob/master/main/src/ca/uwaterloo/flix/util/collection/Chain.scala">
- *     here</a>
+ * here</a>
  * Unit tests (will be) moved as well.
  */
 public sealed interface VChain<A> extends Iterable<A> {
@@ -29,22 +29,20 @@ public sealed interface VChain<A> extends Iterable<A> {
 
     final class Empty<A> implements VChain<A> {
         public static final VChain<?> EmptyInst = new Empty<>();
-        private Empty() {}
+
+        private Empty() {
+        }
 
         @Override public String toString() {
             return "Chain[]";
         }
     }
 
-    @SuppressWarnings("unchecked") static <A> VChain<A> empty() {
-        return (VChain<A>) Empty.EmptyInst;
-    }
-
     default boolean isEmpty() {
         return switch (this) {
-            case VChain.Empty<A> _          -> true;
-            case VChain.Link(var l, var r)  -> l.isEmpty() && r.isEmpty();
-            case VChain.Proxy(var xs)       -> xs._null();
+            case VChain.Empty<A> _ -> true;
+            case VChain.Link(var l, var r) -> l.isEmpty() && r.isEmpty();
+            case VChain.Proxy(var xs) -> xs._null();
         };
     }
 
@@ -59,11 +57,12 @@ public sealed interface VChain<A> extends Iterable<A> {
         @Override public int hashCode() {
             return this.toList().hashCode();
         }
+
+        @Override public String toString() {
+            return String.format("Chain[%s]", this.mkString(", "));
+        }
     }
 
-    static <A> VChain<A> link(VChain<A> l, VChain<A> r) {
-        return new VChain.Link<>(l, r);
-    }
     // I think the original scala's choice of Seq inside a proxy
     // doesn't really effect the larger big O characteristics of this
     // rope like data structure (will still support O(1) concatenations
@@ -81,15 +80,12 @@ public sealed interface VChain<A> extends Iterable<A> {
         @Override public int hashCode() {
             return xs.hashCode();
         }
+
+        @Override public String toString() {
+            return String.format("Chain[%s]", this.mkString(", "));
+        }
     }
 
-    static <A> VChain<A> proxy(A x) {
-        return proxy(VList.of(x));
-    }
-
-    static <A> VChain<A> proxy(VList<A> list) {
-        return new VChain.Proxy<>(list);
-    }
 
     default Maybe<A> head() {
         var current = this;
@@ -99,8 +95,8 @@ public sealed interface VChain<A> extends Iterable<A> {
                     return Maybe.none();
                 }
                 case Link(Empty<A> _, var r) -> current = r;
-                case Link(var l, _)          -> current = l;
-                case Proxy(var xs)           -> {
+                case Link(var l, _) -> current = l;
+                case Proxy(var xs) -> {
                     return xs.headMaybe();
                 }
             }
@@ -115,8 +111,9 @@ public sealed interface VChain<A> extends Iterable<A> {
         while (!stack.isEmpty()) {
             var current = stack.pop();
             switch (current) {
-                case Empty<A> _          -> {}
-                case Link(var l, var r)  -> {
+                case Empty<A> _ -> {
+                }
+                case Link(var l, var r) -> {
                     stack.push(l);
                     stack.push(r);
                 }
@@ -132,9 +129,9 @@ public sealed interface VChain<A> extends Iterable<A> {
      */
     default boolean exists(Function<A, Boolean> f) {
         return switch (this) {
-            case Empty<A> _         -> false;
+            case Empty<A> _ -> false;
             case Link(var l, var r) -> l.exists(f) || r.exists(f);
-            case Proxy(var xs)      -> xs.anyMatch(f::apply);
+            case Proxy(var xs) -> xs.anyMatch(f::apply);
         };
     }
 
@@ -144,9 +141,9 @@ public sealed interface VChain<A> extends Iterable<A> {
      */
     default <B> VChain<B> map(Function<A, B> f) {
         return switch (this) {
-            case Empty<A> _         -> VChain.empty();
+            case Empty<A> _ -> VChain.empty();
             case Link(var l, var r) -> VChain.link(l.map(f), r.map(f));
-            case Proxy(var xs)      -> VChain.proxy(xs.map(f));
+            case Proxy(var xs) -> VChain.proxy(xs.map(f));
         };
     }
 
@@ -159,8 +156,8 @@ public sealed interface VChain<A> extends Iterable<A> {
     }
 
     default String mkString(String sep) {
-        var sb      = new StringBuilder();
-        var first   = true;
+        var sb = new StringBuilder();
+        var first = true;
         for (var x : this) {
             if (first) {
                 sb.append(x);
@@ -193,7 +190,8 @@ public sealed interface VChain<A> extends Iterable<A> {
             while (!stack.isEmpty()) {
                 var cur = stack.pop();
                 switch (cur) {
-                    case Empty<A> _ -> { }
+                    case Empty<A> _ -> {
+                    }
                     case Link(var l, var r) -> {
                         stack.push(r);
                         stack.push(l);
@@ -218,5 +216,37 @@ public sealed interface VChain<A> extends Iterable<A> {
             // by contract: proxyIt is not null and has a next element
             return proxyIt.next();
         }
+    }
+
+    // static factory methods
+
+    static <A> VChain<A> of(A... xs) {
+        if (xs.length == 0) {
+            return VChain.empty();
+        }
+        return proxy(VList.ofAll(java.util.Arrays.asList(xs)));
+    }
+
+    static <A> VChain<A> from(Iterable<A> items) {
+        for (A ignored : items) {
+            return proxy(VList.ofAll(items));
+        }
+        return VChain.empty();
+    }
+
+    static <A> VChain<A> proxy(A x) {
+        return proxy(VList.of(x));
+    }
+
+    static <A> VChain<A> proxy(VList<A> list) {
+        return new VChain.Proxy<>(list);
+    }
+
+    static <A> VChain<A> link(VChain<A> l, VChain<A> r) {
+        return new VChain.Link<>(l, r);
+    }
+
+    @SuppressWarnings("unchecked") static <A> VChain<A> empty() {
+        return (VChain<A>) Empty.EmptyInst;
     }
 }
