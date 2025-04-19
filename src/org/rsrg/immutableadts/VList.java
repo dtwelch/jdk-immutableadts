@@ -74,8 +74,8 @@ public final class VList<A> implements Iterable<A> {
         return new VList<>(AlgebraicLst.cons(element, lst), size + 1);
     }
 
-    /** O(1) - returns the number of items in this list. */
-    public int size() {
+    /** O(1) - returns the number of items in {@code this} list. */
+    public int length() {
         return size;
     }
 
@@ -110,7 +110,7 @@ public final class VList<A> implements Iterable<A> {
         if (size <= 1) {
             return this;
         }
-        AlgebraicLst<A> reversed = AlgebraicLst.empty();
+        var reversed = AlgebraicLst.<A>empty();
         var current = lst;
         while (!current._null()) {
             var head = current.head();

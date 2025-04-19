@@ -42,7 +42,7 @@ public final class VListTests {
         var list2 = VList.of(4, 5);
         var appended = list1.append(list2);
         var expectedSize = 5;
-        Assertions.assertEquals(expectedSize, appended.size());
+        Assertions.assertEquals(expectedSize, appended.length());
     }
 
     @Test void appendEmptyToEmptyShouldMaintainSize() {
@@ -50,7 +50,7 @@ public final class VListTests {
         var list2 = VList.<Integer>empty();
         var appended = list1.append(list2);
         var expectedSize = 0;
-        Assertions.assertEquals(expectedSize, appended.size());
+        Assertions.assertEquals(expectedSize, appended.length());
     }
 
     @Test void appendShouldBeImmutable() {
@@ -82,7 +82,7 @@ public final class VListTests {
         }
         var appended = list1.append(list2);
         var expectedSize = 2000;
-        Assertions.assertEquals(expectedSize, appended.size());
+        Assertions.assertEquals(expectedSize, appended.length());
     }
 
     @Test void foldLeftShouldAccumulateCorrectly() {

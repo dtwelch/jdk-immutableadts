@@ -1,9 +1,6 @@
 package org.rsrg.immutableadts;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -27,13 +24,9 @@ public sealed interface VChain<A> extends Iterable<A> {
 
     final class Empty<A> implements VChain<A> {
         public static final VChain<?> EmptyInst = new Empty<>();
+        private Empty() {}
 
-        private Empty() {
-        }
-
-        @Override public String toString() {
-            return "Chain[]";
-        }
+        @Override public String toString() { return "Chain[]"; }
     }
 
     default boolean isEmpty() {
@@ -62,11 +55,12 @@ public sealed interface VChain<A> extends Iterable<A> {
     }
 
     // I think the original scala's choice of Seq inside a proxy
-    // doesn't really effect the larger big O characteristics of this
-    // rope like data structure (will still support O(1) concatenations
+    // doesn't really effect the asymptotic (big O) characteristics of this
+    // rope like data structure ... i.e.: it will still support O(1) concatenations
     // list1.errors().concat(list2.errors())
     // TLDR: no need to implement a vector or something using the finger
-    // tree started... (just use the immutable list in the leafs)
+    // tree started... (just use the immutable list in the leafs).
+    // There is some locality sacrifice here, however.
     record Proxy<A>(VList<A> xs) implements VChain<A> {
         @Override public boolean equals(Object o) {
             return switch (o) {
@@ -115,7 +109,7 @@ public sealed interface VChain<A> extends Iterable<A> {
                     stack.push(l);
                     stack.push(r);
                 }
-                case Proxy(var xs) -> len += xs.size();
+                case Proxy(var xs) -> len += xs.length();
             }
         }
         return len;
@@ -218,7 +212,11 @@ public sealed interface VChain<A> extends Iterable<A> {
 
     // static factory methods
 
-    static <A> VChain<A> of(A... xs) {
+    static <A> VChain<A> of(A x) {
+        return proxy(VList.of(x));
+    }
+
+    @SafeVarargs static <A> VChain<A> of(A... xs) {
         if (xs.length == 0) {
             return VChain.empty();
         }
@@ -226,10 +224,10 @@ public sealed interface VChain<A> extends Iterable<A> {
     }
 
     static <A> VChain<A> from(Iterable<A> items) {
-        for (A ignored : items) {
-            return proxy(VList.ofAll(items));
-        }
-        return VChain.empty();
+        return switch (items) {
+            case Collection<A> c when c.isEmpty() -> VChain.empty();
+            default                               -> proxy(VList.ofAll(items));
+        };
     }
 
     static <A> VChain<A> proxy(A x) {
