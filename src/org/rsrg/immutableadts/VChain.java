@@ -217,15 +217,12 @@ public sealed interface VChain<A> extends Iterable<A> {
     }
 
     @SafeVarargs static <A> VChain<A> of(A... xs) {
-        if (xs.length == 0) {
-            return VChain.empty();
-        }
-        return proxy(VList.ofAll(java.util.Arrays.asList(xs)));
+        return from(java.util.Arrays.asList(xs));
     }
 
     static <A> VChain<A> from(Iterable<A> items) {
         return switch (items) {
-            case Collection<A> c when c.isEmpty() -> VChain.empty();
+            case Collection<?> c when c.isEmpty() -> VChain.empty();
             default                               -> proxy(VList.ofAll(items));
         };
     }
