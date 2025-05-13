@@ -99,10 +99,10 @@ public final class BalancedBstPropTests {
     }
 
     // helper: get the level of a node (empty nodes have level 0)
-    private int levelOf(AlgebraicTr<Integer> t) {
-        if (t instanceof AlgebraicTr.Empty) {
+    private int levelOf(BalancedBst.AlgebraicTr<Integer> t) {
+        if (t instanceof BalancedBst.AlgebraicTr.Empty) {
             return 0;
-        } else if (t instanceof AlgebraicTr.Node<Integer> node) {
+        } else if (t instanceof BalancedBst.AlgebraicTr.Node<Integer> node) {
             return node.lvl();
         }
         return 0;
@@ -111,10 +111,10 @@ public final class BalancedBstPropTests {
     // check AA1: left child's level is exactly one less than parent's level
     // check AA2: right child's level is either the same as parent's (double node)
     //          or one less (single node)
-    private boolean checkAA1AA2(AlgebraicTr<Integer> t) {
-        if (t instanceof AlgebraicTr.Empty) {
+    private boolean checkAA1AA2(BalancedBst.AlgebraicTr<Integer> t) {
+        if (t instanceof BalancedBst.AlgebraicTr.Empty) {
             return true;
-        } else if (t instanceof AlgebraicTr.Node<Integer> node) {
+        } else if (t instanceof BalancedBst.AlgebraicTr.Node<Integer> node) {
             int level = node.lvl();
             int leftLevel = levelOf(node.left());
             int rightLevel = levelOf(node.right());
@@ -127,23 +127,23 @@ public final class BalancedBstPropTests {
 
     // check AA3: right child of the right child has a level less than parent's level
     // check AA4: if parent's level > 1 then both children should be non-empty
-    private boolean checkAA3AA4(AlgebraicTr<Integer> t) {
-        if (t instanceof AlgebraicTr.Empty) {
+    private boolean checkAA3AA4(BalancedBst.AlgebraicTr<Integer> t) {
+        if (t instanceof BalancedBst.AlgebraicTr.Empty) {
             return true;
-        } else if (t instanceof AlgebraicTr.Node<Integer> node) {
+        } else if (t instanceof BalancedBst.AlgebraicTr.Node<Integer> node) {
             int lvl = node.lvl();
             int rightRightLevel = 0;
-            if (node.right() instanceof AlgebraicTr.Empty) {
+            if (node.right() instanceof BalancedBst.AlgebraicTr.Empty) {
                 rightRightLevel = 0;
-            } else if (node.right() instanceof AlgebraicTr.Node<Integer> rightNode) {
-                if (rightNode.right() instanceof AlgebraicTr.Empty) {
+            } else if (node.right() instanceof BalancedBst.AlgebraicTr.Node<Integer> rightNode) {
+                if (rightNode.right() instanceof BalancedBst.AlgebraicTr.Empty) {
                     rightRightLevel = 0;
-                } else if (rightNode.right() instanceof AlgebraicTr.Node<Integer> rightRightNode) {
+                } else if (rightNode.right() instanceof BalancedBst.AlgebraicTr.Node<Integer> rightRightNode) {
                     rightRightLevel = rightRightNode.lvl();
                 }
             }
             boolean aa3 = rightRightLevel < lvl;
-            boolean aa4 = lvl <= 1 || (!(node.left() instanceof AlgebraicTr.Empty) && !(node.right() instanceof AlgebraicTr.Empty));
+            boolean aa4 = lvl <= 1 || (!(node.left() instanceof BalancedBst.AlgebraicTr.Empty) && !(node.right() instanceof BalancedBst.AlgebraicTr.Empty));
             return aa3 && aa4 && checkAA3AA4(node.left()) && checkAA3AA4(node.right());
         }
         return true;
